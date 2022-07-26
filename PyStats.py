@@ -24,33 +24,40 @@ install_traceback(show_locals=False)
 #Dashboard imports \\ or pretty imports?
 
 # Initializing Parser
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("DirectoryFile", help="Input Absolute Path to Directory or File")
+    parser.add_argument("-df", help="Input Absolute Path to Directory or File")
+    #df is directory or file it will kinda figure out byitself assuming theirs only 2 files in the dir and u do -neglect
+    parser.add_argument('-onefile', help="Input Absolute Path to File to Analyze")
     parser.add_argument("-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY") 
     #Debug argument to print out the file names
     path = parser.parse_args()
     #2 Varibles 
-    #path.DirectoryFile
+    #path.df
+    #path.onefile ignores everything and makes sure u have just onefile ur scanning
     #Path.neglect
     
-    #Determine if its a directory or file
-    if os.path.isdir(path.DirectoryFile):
-        #If its a directory get all absolute paths of files in it ending with py
-        paths = []
-        for dirpath,_,filenames in os.walk(path.DirectoryFile):
-            for f in filenames:
-                if f.endswith('.py'):
-                    paths.append(os.path.abspath(os.path.join(dirpath, f)))
-        #remove neglect from paths
-        if path.neglect is not None:
-            for line in paths:
-                original_line = line
-                line = line.replace("\\","/")
-                if path.neglect in line:
-                    paths.remove(original_line)
+    if path.onefile:
+        paths = [path.onefile]
     else:
-        paths = [path.DirectoryFile]
+        #Determine if its a directory or file
+        if os.path.isdir(path.df):
+            #If its a directory get all absolute paths of files in it ending with py
+            paths = []
+            for dirpath,_,filenames in os.walk(path.df):
+                for f in filenames:
+                    if f.endswith('.py'):
+                        paths.append(os.path.abspath(os.path.join(dirpath, f)))
+            #remove neglect from paths
+            if path.neglect is not None:
+                for line in paths:
+                    original_line = line
+                    line = line.replace("\\","/")
+                    if path.neglect in line:
+                        paths.remove(original_line)
+        else:
+            paths = [path.df]
     #That ends classification of the file
     
     
@@ -94,10 +101,16 @@ class Stat:
         return real_imports
     
     def line_count(self):
-        line_count = 0
-        with open(self.directory[0], encoding='utf8') as f:
-            for line in f:
-                line_count += 1
+        #if its a directory return the lines in a dict with the file name as the key
+        if len(self.directory) > 1:
+            line_count = {}
+            for path in self.directory:
+                with open(path, encoding='utf8') as f:
+                    line_count[path] = len(f.readlines())
+        else:
+            with open(self.directory[0], encoding='utf8') as f:
+                line_count = len(f.readlines())
+        
         return line_count
     
     def most_used_varible(self):
@@ -112,6 +125,7 @@ class Stat:
         
     def scrape_varibles(self, full_line_of_varible=False):
         varibles = []
+        var = {}
         with open(self.directory[0], encoding='utf8') as f:
             for line in f:
                 if ' = ' in line:
@@ -119,8 +133,8 @@ class Stat:
                         varibles.append(line)
                     varibles.append(line.split()[0])
                         
-        
         return varibles
+
 
     def get_import_names(self):
         imports = self.scrape_imports()
@@ -135,7 +149,9 @@ class Stat:
                 
 
             
-            
+info = Stat(paths)    
+        
     
-
-print(Stat(paths).line_count())
+print(info.line_count(),
+      info.most_used_varible(),
+      info.scrape_varibles())
