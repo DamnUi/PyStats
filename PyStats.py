@@ -56,6 +56,7 @@ if __name__ == '__main__':
 class Stat:
     def __init__(self, directory) -> None:
         self.directory = directory
+        self.directory.sort()
         # Check if file exists
         if not all([x for x in self.directory]):
             print("[red]No file present in given directory.")
@@ -95,16 +96,29 @@ class Stat:
 
         return dict(sorted(result.items(), reverse=True))
 
-    def line_count(self):
-        # if it's a directory return the lines in a dict with the file name as the key
+    def line_count(self, exclude_empty_line: bool = False):
+        line_count = {}
+        # if it's a directory return the lines in a dict with the relative file name as the key
         if len(self.directory) > 1:
-            line_count = {}
-            for path in self.directory:
-                with open(path, encoding='utf8') as f:
-                    line_count[path] = len(f.readlines())
+            for file_path in self.directory:
+                # changed the full file name to a relative path for easier viewing/showing
+                file_path = os.path.relpath(file_path)
+                with open(file_path, encoding='utf8') as open_file:
+
+                    # taken from https://stackoverflow.com/a/19001477
+                    # using generator expression, a LARGE file can also be read without
+                    # using too much physical memory of the system
+
+                    if not exclude_empty_line:
+                        count = sum(1 for _ in open_file)
+                    else:
+                        count = sum(1 for _ in open_file if _.rstrip('\n'))
+
+                    line_count[file_path.split('../')[1]] = count
         else:
-            with open(self.directory[0], encoding='utf8') as f:
-                line_count = len(f.readlines())
+            with open(self.directory[0], encoding='utf8') as open_file:
+                file_path = os.path.relpath(self.directory[0])
+                line_count[file_path] = sum(1 for _ in open_file)
 
         return line_count
 
