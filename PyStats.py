@@ -8,6 +8,8 @@ from rich import pretty, print
 from rich.traceback import install as install_traceback
 
 # Usage: print(Panel.fit("Hello, [red]World!", title="Welcome", subtitle="Thank you"))
+from utilities import from_imports, import_imports
+
 pretty.install()
 install_traceback(show_locals=False)
 # Dashboard imports \\ or pretty imports?
@@ -54,40 +56,44 @@ if __name__ == '__main__':
 class Stat:
     def __init__(self, directory) -> None:
         self.directory = directory
-        # Add .py to directory if not there
-        if not self.directory[-1].endswith('.py'):
-            self.directory[-1] += '.py'
         # Check if file exists
-        if not os.path.exists(self.directory[-1]):
-            print("[red]File does not exist")
+        if not all([x for x in self.directory]):
+            print("[red]No file present in given directory.")
             exit()
-        # The Neglect keyword ain't needed because it's already delt in the if statement from before
-
-    def scrape_imports(self):
-        imports_ = []
-        real_imports = []
-        if len(self.directory) > 1:
-            print("[green]Scraping imports from multiple files...")
-            for path in self.directory:
-                with open(path, encoding='utf8') as f:
-                    for line in f:
-                        if line.startswith('import'):
-                            imports_.append(line)
-                        elif line.startswith('from'):
-                            imports_.append(line)
         else:
-            print("[green]Scraping imports from single file...")
-            with open(self.directory[0], encoding='utf8') as f:
-                for line in f:
-                    if line.startswith('import'):
-                        imports_.append(line)
-                    elif line.startswith('from'):
-                        imports_.append(line)
+            dir_ = [x for x in self.directory if '__init__' in x]
+            print(f"[green]{len(self.directory)} files found in {len(dir_)} folders.\n")
+            # print("[yellow]Exploring further ...\n")
 
-        for line in imports_:
-            real_imports.append(line.strip())
+    def scrape_imports(self, get_assets=True):
+        from_, import_, result = [], [], {}
+        if len(self.directory) > 1:
+            print("[blue]Scraping imports from multiple files...\n")
+            if get_assets:
+                print('[blue]Calculating assets ...\n')
+            for file_path in self.directory:
+                for k, v in from_imports(input_file=file_path, get_assets=get_assets).items():
+                    if k not in result.keys():
+                        result[k] = v
+                    else:
+                        result[k].extend(v)
 
-        return real_imports
+                for k, v in import_imports(input_file=file_path).items():
+                    if k not in result.keys():
+                        result[k] = v
+                    else:
+                        result[k] += v
+        else:
+            print("[blue]Scraping imports from single file...\n")
+            result.update({k: v for k, v in from_imports(input_file=self.directory[0],
+                                                         get_assets=get_assets).items()})
+            result.update({k: v for k, v in import_imports(input_file=self.directory[0]).items()})
+
+        for k, v in result.items():
+            if not isinstance(v, int):
+                result[k] = dict(Counter(v))
+
+        return dict(sorted(result.items(), reverse=True))
 
     def line_count(self):
         # if it's a directory return the lines in a dict with the file name as the key
@@ -137,7 +143,7 @@ class Stat:
 
 
 info = Stat(paths)
-
-print(info.line_count(),
-      info.most_used_variable(),
-      info.scrape_variables())
+print(info.line_count())
+# print(info.scrape_imports())
+#       info.most_used_variable(),
+#       info.scrape_variables())
