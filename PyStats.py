@@ -1,7 +1,6 @@
 import argparse
 # Dashboard imports
 import os
-import re
 from collections import Counter
 
 from rich import pretty, print
@@ -9,10 +8,6 @@ from rich import pretty, print
 from rich.traceback import install as install_traceback
 
 # Usage: print(Panel.fit("Hello, [red]World!", title="Welcome", subtitle="Thank you"))
-from utilities import from_imports, import_imports
-
-# Dashboard imports
-
 pretty.install()
 install_traceback(show_locals=False)
 # Dashboard imports \\ or pretty imports?
@@ -59,69 +54,51 @@ if __name__ == '__main__':
 class Stat:
     def __init__(self, directory) -> None:
         self.directory = directory
-        self.directory.sort()
+        # Add .py to directory if not there
+        if not self.directory[-1].endswith('.py'):
+            self.directory[-1] += '.py'
         # Check if file exists
-        if not all([x for x in self.directory]):
-            print("[red]No file present in given directory.")
+        if not os.path.exists(self.directory[-1]):
+            print("[red]File does not exist")
             exit()
-        else:
-            dir_ = [x for x in self.directory if '__init__' in x]
-            print(f"[green]{len(self.directory)} files found in {len(dir_)} folders.\n")
-            # print("[yellow]Exploring further ...\n")
+        # The Neglect keyword ain't needed because it's already delt in the if statement from before
 
-    def scrape_imports(self, get_assets=True):
-        from_, import_, result = [], [], {}
+    def scrape_imports(self):
+        imports_ = []
+        real_imports = []
         if len(self.directory) > 1:
-            print("[blue]Scraping imports from multiple files...\n")
-            if get_assets:
-                print('[blue]Calculating assets ...\n')
-            for file_path in self.directory:
-                for k, v in from_imports(input_file=file_path, get_assets=get_assets).items():
-                    if k not in result.keys():
-                        result[k] = v
-                    else:
-                        result[k].extend(v)
-
-                for k, v in import_imports(input_file=file_path).items():
-                    if k not in result.keys():
-                        result[k] = v
-                    else:
-                        result[k] += v
+            print("[green]Scraping imports from multiple files...")
+            for path in self.directory:
+                with open(path, encoding='utf8') as f:
+                    for line in f:
+                        if line.startswith('import'):
+                            imports_.append(line)
+                        elif line.startswith('from'):
+                            imports_.append(line)
         else:
-            print("[blue]Scraping imports from single file...\n")
-            result.update({k: v for k, v in from_imports(input_file=self.directory[0],
-                                                         get_assets=get_assets).items()})
-            result.update({k: v for k, v in import_imports(input_file=self.directory[0]).items()})
+            print("[green]Scraping imports from single file...")
+            with open(self.directory[0], encoding='utf8') as f:
+                for line in f:
+                    if line.startswith('import'):
+                        imports_.append(line)
+                    elif line.startswith('from'):
+                        imports_.append(line)
 
-        for k, v in result.items():
-            if not isinstance(v, int):
-                result[k] = dict(Counter(v))
+        for line in imports_:
+            real_imports.append(line.strip())
 
-        return dict(sorted(result.items(), reverse=True))
+        return real_imports
 
-    def line_count(self, exclude_empty_line: bool = False):
-        line_count = {}
-        # if it's a directory return the lines in a dict with the relative file name as the key
+    def line_count(self):
+        # if it's a directory return the lines in a dict with the file name as the key
         if len(self.directory) > 1:
-            for file_path in self.directory:
-                # changed the full file name to a relative path for easier viewing/showing
-                file_path = os.path.relpath(file_path)
-                with open(file_path, encoding='utf8') as open_file:
-
-                    # taken from https://stackoverflow.com/a/19001477
-                    # using generator expression, a LARGE file can also be read without
-                    # using too much physical memory of the system
-
-                    if not exclude_empty_line:
-                        count = sum(1 for _ in open_file)
-                    else:
-                        count = sum(1 for _ in open_file if _.rstrip('\n'))
-
-                    line_count[file_path.split('../')[1]] = count
+            line_count = {}
+            for path in self.directory:
+                with open(path, encoding='utf8') as f:
+                    line_count[path] = len(f.readlines())
         else:
-            with open(self.directory[0], encoding='utf8') as open_file:
-                file_path = os.path.relpath(self.directory[0])
-                line_count[file_path] = sum(1 for _ in open_file)
+            with open(self.directory[0], encoding='utf8') as f:
+                line_count = len(f.readlines())
 
         return line_count
 
@@ -135,19 +112,17 @@ class Stat:
         return most_used_variable, dictionary[most_used_variable]
 
     def scrape_variables(self, full_line_of_variable=False):
-        variables_ = [line_
-                      for file_ in self.directory
-                      for line_ in open(file_, encoding='utf-8')
-                      if re.match('^\s*\w+\s=\s', line_) or re.match('^\s*self.\w+\s=\s', line_)]
+        variables = []
+        var = {}
+        for i in self.directory:
+            with open(i, encoding='utf8') as f:
+                for line in f:
+                    if ' = ' in line:
+                        if full_line_of_variable:
+                            variables.append(line)
+                        variables.append(line.split()[0])
 
-        list_of_variables = [variables.strip()
-                             if full_line_of_variable
-                             else variables.split('=')[0].strip().replace('self.', '')
-                             for variables in variables_
-                             if variables]
-
-        return {k: v for k, v in
-                sorted(dict(Counter(list_of_variables)).items(), key=lambda x: x[0])}
+        return variables
 
     def get_import_names(self):
         imports = self.scrape_imports()
@@ -162,7 +137,7 @@ class Stat:
 
 
 info = Stat(paths)
-print(info.scrape_variables())
-# print(info.scrape_imports())
-#       info.most_used_variable(),
-#       info.scrape_variables())
+
+print(info.line_count(),
+      info.most_used_variable(),
+      info.scrape_variables())
