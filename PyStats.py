@@ -1,6 +1,7 @@
 import argparse
 # Dashboard imports
 import os
+import re
 from collections import Counter
 
 from rich import pretty, print
@@ -9,6 +10,8 @@ from rich.traceback import install as install_traceback
 
 # Usage: print(Panel.fit("Hello, [red]World!", title="Welcome", subtitle="Thank you"))
 from utilities import from_imports, import_imports
+
+# Dashboard imports
 
 pretty.install()
 install_traceback(show_locals=False)
@@ -132,17 +135,19 @@ class Stat:
         return most_used_variable, dictionary[most_used_variable]
 
     def scrape_variables(self, full_line_of_variable=False):
-        variables = []
-        var = {}
-        for i in self.directory:
-            with open(i, encoding='utf8') as f:
-                for line in f:
-                    if ' = ' in line:
-                        if full_line_of_variable:
-                            variables.append(line)
-                        variables.append(line.split()[0])
+        variables_ = [line_
+                      for file_ in self.directory
+                      for line_ in open(file_, encoding='utf-8')
+                      if re.match('^\s*\w+\s=\s', line_) or re.match('^\s*self.\w+\s=\s', line_)]
 
-        return variables
+        list_of_variables = [variables.strip()
+                             if full_line_of_variable
+                             else variables.split('=')[0].strip().replace('self.', '')
+                             for variables in variables_
+                             if variables]
+
+        return {k: v for k, v in
+                sorted(dict(Counter(list_of_variables)).items(), key=lambda x: x[0])}
 
     def get_import_names(self):
         imports = self.scrape_imports()
@@ -157,7 +162,7 @@ class Stat:
 
 
 info = Stat(paths)
-print(info.line_count())
+print(info.scrape_variables())
 # print(info.scrape_imports())
 #       info.most_used_variable(),
 #       info.scrape_variables())
