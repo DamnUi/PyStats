@@ -293,7 +293,7 @@ class VisualWrapper():
     def get_quickstat(self):
         founds = self.stat.return_founds()
         self.quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
-        self.quick = Align(Panel(self.quick_md, title='Quick Stat', title_align='left', width=None), align='left', style='black')#Can Change border style here by changing style
+        self.quick = Align(Panel(self.quick_md, title='Quick Stat', title_align='left', width=1000), align='left', style='black')#Can Change border style here by changing style
         #print(self.quick)
         return self.quick
     
