@@ -5,12 +5,20 @@ import os
 import re
 import sys
 
-from rich import pretty, print
+from rich import print
 from rich.traceback import install as install_traceback
 
 from utilities import from_imports, import_imports, is_admin, list_to_counter_dictionary
 
-pretty.install()
+from rich.console import Group
+from rich.console import Console
+from rich.panel import Panel
+from rich.markdown import Markdown
+from rich.align import Align    
+from rich.layout import Layout
+
+
+
 install_traceback(show_locals=False)
 
 if __name__ == '__main__':
@@ -85,19 +93,27 @@ class OutputNotSpecified(Exception):
     pass
 
 
+
+
+
 class Stat:
     def __init__(self, directory) -> None:
         self.directory = [os.path.relpath(x) for x in directory]
         self.directory.sort()
+        self.founds = []
         # Check if file exists
         if not all([x for x in self.directory]):
-            print("[red]No file present in given directory.")
+            self.founds.append("[red]No file present in given directory.")
             exit()
         else:
             dir_ = [x for x in self.directory if '__init__' in x]
-            print(f"[green]{len(self.directory)} files found in {len(dir_)} folders.\n")
+            self.founds.append(f"[green]{len(self.directory)} files found in {len(dir_)} folders.\n")
             # print("[yellow]Exploring further ...\n")
 
+    def return_founds(self):
+        return self.founds
+        
+    
     @staticmethod
     def add_imports_to_results(import_list, result_dictionary):
         for key, value in import_list.items():
@@ -114,12 +130,13 @@ class Stat:
             else:
                 result_dictionary[key].extend(value)
 
+
     def __scrape_imports(self, get_assets=True):
         result = {}
         if len(self.directory) > 1:
-            print("[blue]Scraping imports from multiple files...\n")
-            if get_assets:
-                print('[blue]Calculating assets ...\n')
+            #print("[blue]Scraping imports from multiple files...\n")
+            # if get_assets:
+            #     print('[blue]Calculating assets ...\n')
             for file_path in self.directory:
                 from_imp = from_imports(input_file=file_path, get_assets=get_assets)
                 imp_ = import_imports(input_file=file_path)
@@ -151,6 +168,7 @@ class Stat:
                              if variables]
 
         return list_of_variables
+
 
     def import_count(self, get_assets=True):
         result = self.__scrape_imports(get_assets=get_assets)
@@ -189,12 +207,12 @@ class Stat:
         return line_count
 
     def most_used_variable(self, n_variables=None):
-        if n_variables is None:
-            start = 'Frequency of variables used'
-        else:
-            start = f'Listing top {n_variables} variables used'
+        # if n_variables is None:
+        #     start = 'Frequency of variables used'
+        # else:
+        #     start = f'Listing top {n_variables} variables used'
 
-        print(f'[magenta]{start}.\n')
+        # print(f'[magenta]{start}.\n')
 
         most_used_variable = {key: value for key, value in
                               sorted(list_to_counter_dictionary(self.__scrape_variables()).items(),
@@ -232,10 +250,69 @@ class Stat:
             raise OutputNotSpecified('The out_import_type must be one of \'from\', \'import\', '
                                      'or \'all\'.')
 
+#Really bad code form here! yayy
 
-info = Stat(paths)
-print(info.line_count())
-print(info.most_used_variable())
-# print(info.scrape_imports())
-#       info.most_used_variable(),
-#       info.scrape_variables())
+
+class visual_wrapper():
+    def __init__(self, dir) -> None:
+        self.directory = dir
+        self.stat = Stat(self.directory)
+        
+                
+    @staticmethod
+    def panel_print(thing, border_style):
+        return Panel(thing, border_style=border_style)
+    
+    def get_quickstat(self):
+        founds = self.stat.return_founds()
+        self.quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
+        self.quick = Align(Panel(self.quick_md, title='Quick Stat', title_align='left', width=None), align='left', style='black')#Can Change border style here by changing style
+        #print(self.quick)
+        return self.quick
+    
+    def get_line_count(self):
+        #remove the {} of Stat(paths).line_count() 
+        called = self.stat.line_count()
+        #add \n after each element except after last element
+        called_md = '\n'.join([f'{k}: {v}' for k, v in called.items()])
+        #make the first part coloured without re
+        
+        called_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', called_md)
+            
+        self.line_count_md = f"""[magenta]{called_md}[/]"""
+        self.line_count_panel = Panel(self.line_count_md, title='[black]Line Count', title_align='left', border_style='blue' , width=25)
+        #print(self.line_count_panel)
+        return self.line_count_panel
+    
+    def get_varible(self, n_variables=3):
+        variables = self.stat.most_used_variable(n_variables)
+        if n_variables is None:
+            start = 'Frequency of variables used'
+        else:
+            start = f'Listing top [b u]{n_variables}[/] variables used'
+
+        
+        #add \n after each element except after last element
+        variables_md = '\n'.join([f'{k}: {v}' for k, v in variables.items()])
+        variables_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', variables_md)
+        self.variable_md = f"""[magenta]{variables_md}[/]"""
+        self.variable_panel = Panel(self.variable_md, title=f'[black]{start}', title_align='left', border_style='blue' , width=25)
+        #print(self.variable_panel)
+        return self.variable_panel
+
+    def get_import_count(self): #This function needs some refining other then this i think the other two are good
+        imports = self.stat.import_count()
+        #add \n after each element except after last element
+        imports_md = '\n'.join([f'{k}: {v}' for k, v in imports.items()])
+        imports_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', imports_md)
+        self.import_md = f"""[magenta]{imports_md}[/]"""
+        self.import_panel = Panel(self.import_md, title='[black]Imports Count', title_align='left', border_style='blue')
+        #print(self.import_panel)
+        return self.import_panel
+
+        
+old_info = Stat(paths)
+info = visual_wrapper(paths)
+
+print(info.get_import_count())
+
