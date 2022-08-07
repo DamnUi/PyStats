@@ -280,7 +280,7 @@ class Stat:
 #Really bad code form here! yayy
 
 
-class visual_wrapper():
+class VisualWrapper():
     def __init__(self, dir) -> None:
         self.directory = dir
         self.stat = Stat(self.directory)
@@ -345,9 +345,9 @@ class visual_wrapper():
         
     
 old_info = Stat(paths)
-info = visual_wrapper(paths)
+info = VisualWrapper(paths)
 
-print(old_info.most_called_func())
+print(info.get_all())
 
 # print(info.get_quickstat())
 # print(info.get_line_count())
