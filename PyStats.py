@@ -123,7 +123,7 @@ class Stat:
                 result_dictionary[key] += value
 
     @staticmethod
-    def add_from_results(from_import_list, result_dictionary):
+    def add_from_imports_results(from_import_list, result_dictionary):
         for key, value in from_import_list.items():
             if key not in result_dictionary.keys():
                 result_dictionary[key] = value
@@ -141,7 +141,7 @@ class Stat:
                 from_imp = from_imports(input_file=file_path, get_assets=get_assets)
                 imp_ = import_imports(input_file=file_path)
 
-                self.add_from_results(from_import_list=from_imp, result_dictionary=result)
+                self.add_from_imports_results(from_import_list=from_imp, result_dictionary=result)
 
                 self.add_imports_to_results(import_list=imp_, result_dictionary=result)
         else:
@@ -149,7 +149,7 @@ class Stat:
             from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
             imp_ = import_imports(input_file=self.directory[0])
 
-            self.add_from_results(from_import_list=from_imp, result_dictionary=result)
+            self.add_from_imports_results(from_import_list=from_imp, result_dictionary=result)
 
             self.add_imports_to_results(import_list=imp_, result_dictionary=result)
 
@@ -225,13 +225,12 @@ class Stat:
 
     def get_import_names(self, import_type: str = 'all'):
         all_imports = []
-        imports = self.import_count()
+        imports = self.__scrape_imports(get_assets=True)
 
-        from_ = [[k_ for k_ in v.keys()] for k, v in imports.items() if 'from' in k]
-        from_ = list(set(itertools.chain.from_iterable(from_)))
+        from_ = [k for k in imports.keys() if 'from' in k]
         from_.sort()
 
-        import_ = [k.split('import')[1].strip() for k in imports.keys() if 'import' in k]
+        import_ = [k for k in imports.keys() if 'import' in k]
         import_.sort()
 
         if import_type == 'from':
@@ -364,4 +363,3 @@ print(info.get_all())
 # print(info.get_quickstat())
 # print(info.get_line_count())
 # print(info.get_varible())
-    
