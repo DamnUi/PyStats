@@ -250,6 +250,33 @@ class Stat:
             raise OutputNotSpecified('The out_import_type must be one of \'from\', \'import\', '
                                      'or \'all\'.')
 
+        
+    def most_called_func(self):
+        
+        most_called_func = {}
+        for file_path in self.directory:
+            with open(file_path, encoding='utf8') as open_file:
+                #lines without \n
+                lines = [line.rstrip('\n') for line in open_file]
+                
+                #func names with call '^\s*def\s+(\w+)\s*\('
+                func_names = [re.match('^\s*def\s+(\w+)\s*\(', line).group(1) for line in lines if re.match('^\s*def\s+(\w+)\s*\(', line)]
+                #add () to func_names
+                func_names = [f'{func_name}()' for func_name in func_names]
+                
+                
+                
+                for line in lines:
+                    for each in func_names:
+                        if each in line:
+                            most_called_func[each] = most_called_func.get(each, 0) + 1
+                
+        return func_names, most_called_func
+
+                
+                    
+            
+            
 #Really bad code form here! yayy
 
 
@@ -310,11 +337,19 @@ class visual_wrapper():
         #print(self.import_panel)
         return self.import_panel
 
+    def get_all(self):
+        self.all_panels = [self.get_quickstat(), self.get_line_count(), self.get_varible(), self.get_import_count()]
+        mygrp  = Group(self.get_quickstat(), self.get_line_count(), self.get_varible(), self.get_import_count())
+            
+        return (Panel(mygrp, title='[black]All Stat', title_align='middle', width=None))    
         
+    
 old_info = Stat(paths)
 info = visual_wrapper(paths)
 
-print(info.get_quickstat())
-print(info.get_line_count())
-print(info.get_varible())
+print(old_info.most_called_func())
+
+# print(info.get_quickstat())
+# print(info.get_line_count())
+# print(info.get_varible())
     
