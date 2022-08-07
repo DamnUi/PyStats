@@ -314,5 +314,7 @@ class visual_wrapper():
 old_info = Stat(paths)
 info = visual_wrapper(paths)
 
-print(info.get_import_count())
-
+print(info.get_quickstat())
+print(info.get_line_count())
+print(info.get_varible())
+    
