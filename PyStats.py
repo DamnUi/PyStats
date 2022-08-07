@@ -280,15 +280,21 @@ class Stat:
 
 
 class VisualWrapper():
-    def __init__(self, dir) -> None:
+    def __init__(self, dir, adhd_mode=False) -> None:
         self.directory = dir
         self.stat = Stat(self.directory)
-        
+        self.adhd_mode = adhd_mode
         
                 
     @staticmethod
     def panel_print(thing, border_style):
         return Panel(thing, border_style=border_style)
+    
+    def get_random_colour(self):
+        import random
+        self.good_colours = ['medium_spring_green', 'spring_green4', 'slate_blue1', 'indian_red']
+        return random.choice(self.good_colours)
+    
     
     def get_quickstat(self):
         founds = self.stat.return_founds()
@@ -298,10 +304,14 @@ class VisualWrapper():
         return self.quick
     
     def get_line_count(self):
+        if self.adhd_mode:
+            coul = self.get_random_colour()
+        else:
+            coul = 'medium_spring_green'
         #remove the {} of Stat(paths).line_count() 
         called = self.stat.line_count()
         #add \n after each element except after last element
-        called_md = '\n'.join([f'{k}: {v}' for k, v in called.items()])
+        called_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in called.items()])
         #make the first part coloured without re
         
         called_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', called_md)
@@ -312,6 +322,11 @@ class VisualWrapper():
         return self.line_count_panel
     
     def get_varible(self, n_variables=3):
+        if self.adhd_mode:
+            coul = self.get_random_colour()
+        else:
+            coul = 'medium_spring_green'
+        
         variables = self.stat.most_used_variable(n_variables)
         if n_variables is None:
             start = 'Frequency of variables used'
@@ -320,7 +335,7 @@ class VisualWrapper():
 
         
         #add \n after each element except after last element
-        variables_md = '\n'.join([f'{k}: {v}' for k, v in variables.items()])
+        variables_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in variables.items()])
         variables_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', variables_md)
         self.variable_md = f"""[magenta]{variables_md}[/]"""
         self.variable_panel = Panel(self.variable_md, title=f'[black]{start}', title_align='left', border_style='blue' , width=33)
@@ -328,9 +343,13 @@ class VisualWrapper():
         return self.variable_panel
 
     def get_import_count(self): #This function needs some refining other then this i think the other two are good
+        if self.adhd_mode:
+            coul = self.get_random_colour()
+        else:
+            coul = 'medium_spring_green'
         imports = self.stat.import_count()
         #add \n after each element except after last element
-        imports_md = '\n'.join([f'{k}: {v}' for k, v in imports.items()])
+        imports_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in imports.items()])
         imports_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', imports_md)
         self.import_md = f"""[magenta]{imports_md}[/]"""
         self.import_panel = Panel(self.import_md, title='[black]Imports Count', title_align='left', border_style='blue')
@@ -339,9 +358,16 @@ class VisualWrapper():
 
     def get_most_called_func(self):
         func_names, most_called_func = self.stat.most_called_func()
+        if self.adhd_mode:
+            coul = self.get_random_colour()
+        else:
+            coul = 'medium_spring_green'
         #add \n after each element except after last element
-        func_names_md = '\n'.join([f'{k}: {v}' for k, v in most_called_func.items()])
+        
+        func_names_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in most_called_func.items()])
+        
         func_names_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', func_names_md)
+        
         self.func_md = f"""[magenta]{func_names_md}[/]"""
         self.func_panel = Panel(self.func_md, title='[black]Most Called Functions', title_align='left', border_style='blue')
         #print(self.func_panel)
@@ -356,7 +382,7 @@ class VisualWrapper():
         
     
 old_info = Stat(paths)
-info = VisualWrapper(paths)
+info = VisualWrapper(paths, adhd_mode=True)
 
 print(info.get_all())
 
