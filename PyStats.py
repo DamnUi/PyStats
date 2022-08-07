@@ -212,7 +212,7 @@ class Stat:
         # else:
         #     start = f'Listing top {n_variables} variables used'
 
-        # print(f'[magenta]{start}.\n')
+        # print(f'[pale_turquoise1]{start}.\n')
 
         most_used_variable = {key: value for key, value in
                               sorted(list_to_counter_dictionary(self.__scrape_variables()).items(),
@@ -280,10 +280,11 @@ class Stat:
 
 
 class VisualWrapper():
-    def __init__(self, dir, adhd_mode=False) -> None:
+    def __init__(self, dir, adhd_mode=False, extra_adhd=False) -> None:
         self.directory = dir
         self.stat = Stat(self.directory)
         self.adhd_mode = adhd_mode
+        self.adhd_modev2 = extra_adhd
         
                 
     @staticmethod
@@ -292,7 +293,7 @@ class VisualWrapper():
     
     def get_random_colour(self):
         import random
-        self.good_colours = ['medium_spring_green', 'spring_green4', 'slate_blue1', 'indian_red']
+        self.good_colours = ['medium_spring_green', 'spring_green4', 'slate_blue1', 'indian_red', 'grey63', 'grey63', 'medium_purple2']
         return random.choice(self.good_colours)
     
     
@@ -307,16 +308,20 @@ class VisualWrapper():
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
-            coul = 'medium_spring_green'
+            coul = 'grey63'
+        if self.adhd_modev2:
+            coulv2 = self.get_random_colour()
+        else:
+            coulv2 = 'pale_turquoise1'
         #remove the {} of Stat(paths).line_count() 
         called = self.stat.line_count()
         #add \n after each element except after last element
-        called_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in called.items()])
+        called_md = '\n'.join([f'[{coulv2}]{k}[/]: [{coul}]{v}[/]' for k, v in called.items()])
         #make the first part coloured without re
         
         called_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', called_md)
             
-        self.line_count_md = f"""[magenta]{called_md}[/]"""
+        self.line_count_md = f"""[pale_turquoise1]{called_md}[/]"""
         self.line_count_panel = Panel(self.line_count_md, title='[black]Line Count', title_align='left', border_style='blue' , width=25)
         #print(self.line_count_panel)
         return self.line_count_panel
@@ -325,7 +330,7 @@ class VisualWrapper():
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
-            coul = 'medium_spring_green'
+            coul = 'grey63'
         
         variables = self.stat.most_used_variable(n_variables)
         if n_variables is None:
@@ -333,11 +338,14 @@ class VisualWrapper():
         else:
             start = f'Listing top [b u]{n_variables}[/] variables used'
 
-        
+        if self.adhd_modev2:
+            coulv2 = self.get_random_colour()
+        else:
+            coulv2 = 'pale_turquoise1'
         #add \n after each element except after last element
-        variables_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in variables.items()])
+        variables_md = '\n'.join([f'[{coulv2}]{k}[/]: [{coul}]{v}[/]' for k, v in variables.items()])
         variables_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', variables_md)
-        self.variable_md = f"""[magenta]{variables_md}[/]"""
+        self.variable_md = f"""[pale_turquoise1]{variables_md}[/]"""
         self.variable_panel = Panel(self.variable_md, title=f'[black]{start}', title_align='left', border_style='blue' , width=33)
         #print(self.variable_panel)
         return self.variable_panel
@@ -346,12 +354,16 @@ class VisualWrapper():
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
-            coul = 'medium_spring_green'
+            coul = 'grey63'
+        if self.adhd_modev2:
+            coulv2 = self.get_random_colour()
+        else:
+            coulv2 = 'pale_turquoise1'
         imports = self.stat.import_count()
         #add \n after each element except after last element
-        imports_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in imports.items()])
+        imports_md = '\n'.join([f'[{coulv2}]{k}[/]: [{coul}]{v}[/]' for k, v in imports.items()])
         imports_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', imports_md)
-        self.import_md = f"""[magenta]{imports_md}[/]"""
+        self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
         self.import_panel = Panel(self.import_md, title='[black]Imports Count', title_align='left', border_style='blue')
         #print(self.import_panel)
         return self.import_panel
@@ -361,14 +373,18 @@ class VisualWrapper():
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
-            coul = 'medium_spring_green'
+            coul = 'grey63'
+        if self.adhd_modev2:
+            coulv2 = self.get_random_colour()
+        else:
+            coulv2 = 'pale_turquoise1'
         #add \n after each element except after last element
         
-        func_names_md = '\n'.join([f'{k}: [{coul}]{v}[/]' for k, v in most_called_func.items()])
+        func_names_md = '\n'.join([f'[{coulv2}]{k}[/]: [{coul}]{v}[/]' for k, v in most_called_func.items()])
         
         func_names_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', func_names_md)
         
-        self.func_md = f"""[magenta]{func_names_md}[/]"""
+        self.func_md = f"""[pale_turquoise1]{func_names_md}[/]"""
         self.func_panel = Panel(self.func_md, title='[black]Most Called Functions', title_align='left', border_style='blue')
         #print(self.func_panel)
         return self.func_panel
@@ -382,7 +398,7 @@ class VisualWrapper():
         
     
 old_info = Stat(paths)
-info = VisualWrapper(paths, adhd_mode=True)
+info = VisualWrapper(paths)
 
 print(info.get_all())
 
