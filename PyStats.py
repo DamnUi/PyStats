@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.align import Align    
 from rich.layout import Layout
-
+from rich.columns import Columns
 
 
 install_traceback(show_locals=False)
@@ -285,6 +285,7 @@ class VisualWrapper():
         self.directory = dir
         self.stat = Stat(self.directory)
         
+        
                 
     @staticmethod
     def panel_print(thing, border_style):
@@ -323,7 +324,7 @@ class VisualWrapper():
         variables_md = '\n'.join([f'{k}: {v}' for k, v in variables.items()])
         variables_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', variables_md)
         self.variable_md = f"""[magenta]{variables_md}[/]"""
-        self.variable_panel = Panel(self.variable_md, title=f'[black]{start}', title_align='left', border_style='blue' , width=25)
+        self.variable_panel = Panel(self.variable_md, title=f'[black]{start}', title_align='left', border_style='blue' , width=33)
         #print(self.variable_panel)
         return self.variable_panel
 
@@ -337,9 +338,20 @@ class VisualWrapper():
         #print(self.import_panel)
         return self.import_panel
 
+    def get_most_called_func(self):
+        func_names, most_called_func = self.stat.most_called_func()
+        #add \n after each element except after last element
+        func_names_md = '\n'.join([f'{k}: {v}' for k, v in most_called_func.items()])
+        func_names_md = re.sub(r'(.*?): (\d+)', r'\1: [b]\2[/]', func_names_md)
+        self.func_md = f"""[magenta]{func_names_md}[/]"""
+        self.func_panel = Panel(self.func_md, title='[black]Most Called Functions', title_align='left', border_style='blue')
+        #print(self.func_panel)
+        return self.func_panel
+
     def get_all(self):
         self.all_panels = [self.get_quickstat(), self.get_line_count(), self.get_varible(), self.get_import_count()]
-        mygrp  = Group(self.get_quickstat(), self.get_line_count(), self.get_varible(), self.get_import_count())
+        grp = Columns([self.get_line_count(), self.get_varible()])
+        mygrp  = Group(self.get_quickstat(), grp ,self.get_most_called_func() ,self.get_import_count())
             
         return (Panel(mygrp, title='[black]All Stat', title_align='middle', width=None))    
         
