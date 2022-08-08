@@ -4,6 +4,7 @@ import itertools
 import os
 import re
 import sys
+from time import sleep
 
 from rich import print
 from rich.traceback import install as install_traceback
@@ -18,7 +19,7 @@ from rich.align import Align
 from rich.layout import Layout
 from rich.columns import Columns
 from rich.rule import Rule
-
+from rich.status import Status
 
 install_traceback(show_locals=False)
 
@@ -45,6 +46,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY"
     )
+    #Argument if to get how many variables 
+    parser.add_argument("--vars", help="Get how many variables are in the file")
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
@@ -52,7 +55,8 @@ if __name__ == "__main__":
     # path.df
     # path.onefile ignores everything and makes sure u have just onefile ur scanning
     # Path.neglect
-
+    if args.vars is None:
+        args.vars = False
     if not any(vars(args).values()):
         # using different separators for windows and linux
         separator = "\\" if os_name == "nt" else "/"
@@ -140,28 +144,28 @@ class Stat:
     def __scrape_imports(self, get_assets=True):
         result = {}
         if len(self.directory) > 1:
-            # print("[blue]Scraping imports from multiple files...\n")
-            # if get_assets:
-            #     print('[blue]Calculating assets ...\n')
-            for file_path in self.directory:
-                from_imp = from_imports(input_file=file_path, get_assets=get_assets)
-                imp_ = import_imports(input_file=file_path)
+            with Status('[blue]Scraping imports from multiple files...'):        
+                # if get_assets:
+                #     print('[blue]Calculating assets ...\n')
+                for file_path in self.directory:
+                    from_imp = from_imports(input_file=file_path, get_assets=get_assets)
+                    imp_ = import_imports(input_file=file_path)
+
+                    self.add_from_imports_results(
+                        from_import_list=from_imp, result_dictionary=result
+                    )
+
+                    self.add_imports_to_results(import_list=imp_, result_dictionary=result)
+        else:
+            with Status('[blue]Scraping imports from single file...'):
+                from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
+                imp_ = import_imports(input_file=self.directory[0])
 
                 self.add_from_imports_results(
                     from_import_list=from_imp, result_dictionary=result
                 )
 
                 self.add_imports_to_results(import_list=imp_, result_dictionary=result)
-        else:
-            print("[blue]Scraping imports from single file...\n")
-            from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
-            imp_ = import_imports(input_file=self.directory[0])
-
-            self.add_from_imports_results(
-                from_import_list=from_imp, result_dictionary=result
-            )
-
-            self.add_imports_to_results(import_list=imp_, result_dictionary=result)
 
         return result
 
@@ -222,6 +226,8 @@ class Stat:
         return line_count
 
     def most_used_variable(self, n_variables=None):
+        if args.vars:
+            n_variables = int(args.vars)
         # if n_variables is None:
         #     start = 'Frequency of variables used'
         # else:
@@ -380,12 +386,18 @@ class VisualWrapper:
             title="[black]Line Count",
             title_align="left",
             border_style="blue",
-            width=25,
         )
         # print(self.line_count_panel)
         return self.line_count_panel
 
     def get_varible(self, n_variables=3):
+        if args.vars:
+            n_variables = int(args.vars)
+            print(len(self.stat.most_used_variable(100000))) #Gets max number of varibles assuming their not more then 100000 cloud implement a fix to this astro but it will do for now
+            if int(n_variables) > int(len(self.stat.most_used_variable(100000))):
+                n_variables = int(len(self.stat.most_used_variable(100000)))
+                
+                
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
@@ -412,7 +424,7 @@ class VisualWrapper:
             title=f"[black]{start}",
             title_align="left",
             border_style="blue",
-            width=33,
+            width=34,
         )
         # print(self.variable_panel)
         return self.variable_panel
