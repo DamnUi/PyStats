@@ -236,7 +236,7 @@ class Stat:
                 reverse=True,
             )
         }
-
+    
         if n_variables is not None:
             return {k: v for k, v in list(most_used_variable.items())[:n_variables]}
         else:
@@ -247,9 +247,12 @@ class Stat:
         imports = self.__scrape_imports(get_assets=True)
 
         from_ = [k for k in imports.keys() if "from" in k]
+        #sort by frequency of imports
         from_.sort()
 
         import_ = [k for k in imports.keys() if "import" in k]
+        #Sort by frequency of import
+        import_.sort(key=lambda x: imports[x], reverse=True)
         import_.sort()
 
         if import_type == "from":
@@ -262,7 +265,7 @@ class Stat:
             all_imports.extend(all_)
             all_imports = list(set(all_imports))
             all_imports.sort()
-
+            
             return all_imports
         else:
             raise OutputNotSpecified(
@@ -290,7 +293,13 @@ class Stat:
                     for each in func_names:
                         if each in line:
                             most_called_func[each] = most_called_func.get(each, 0) + 1
-
+        #Sort by frquency of use
+        most_called_func = {
+            k: v
+            for k, v in sorted(
+                most_called_func.items(), key=lambda item: item[1], reverse=True
+            )
+        }
         return func_names, most_called_func
 
 
@@ -478,7 +487,7 @@ class VisualWrapper:
 old_info = Stat(paths)
 info = VisualWrapper(paths)
 
-print(info.get_all())
+print(info.get_all())       
 
 # print(info.get_quickstat())
 # print(info.get_line_count())
