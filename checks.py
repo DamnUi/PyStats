@@ -1,8 +1,8 @@
-def i_definied_this(x):
+def i_defined_this(x):
     return x**2
 
 
-i_definied_this()
-i_definied_this()
-i_definied_this()
-i_definied_this()
+i_defined_this(5)
+i_defined_this(5)
+i_defined_this(5)
+i_defined_this(5)
