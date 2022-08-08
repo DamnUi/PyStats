@@ -4,7 +4,6 @@ import itertools
 import os
 import re
 import sys
-from time import sleep
 
 from rich import print
 from rich.traceback import install as install_traceback
