@@ -294,6 +294,7 @@ class Stat:
                     for each in func_names:
                         if each in line:
                             most_called_func[each] = most_called_func.get(each, 0) + 1
+                            
         #Sort by frquency of use
         most_called_func = {
             k: v
@@ -301,6 +302,10 @@ class Stat:
                 most_called_func.items(), key=lambda item: item[1], reverse=True
             )
         }
+        #if frequency is 1 then replace it with text 'Only Defined'
+        for key, value in most_called_func.items():
+            if value == 1:
+                most_called_func[key] = "[red]Defined Only[/]"
         return func_names, most_called_func
 
 
