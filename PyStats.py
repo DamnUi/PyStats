@@ -17,7 +17,7 @@ from rich.markdown import Markdown
 from rich.align import Align
 from rich.layout import Layout
 from rich.columns import Columns
-
+from rich.rule import Rule
 
 
 install_traceback(show_locals=False)
@@ -491,6 +491,7 @@ class VisualWrapper:
         grp2 = Columns([self.get_import_count()[0], self.get_import_count()[1]], padding=(0, 1))
         mygrp = Group(
             self.get_quickstat(),
+            Rule('[black]Stats'),
             grp,
             self.get_most_called_func(),
             grp2,
