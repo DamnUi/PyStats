@@ -19,6 +19,11 @@ from rich.layout import Layout
 from rich.columns import Columns
 from rich.rule import Rule
 from rich.status import Status
+from rich.text import Text
+
+console = Console()
+print = console.print
+
 
 install_traceback(show_locals=False)
 
@@ -41,12 +46,14 @@ if __name__ == "__main__":
     parser.add_argument("-df", help="Input Absolute Path to Directory or File")
     # df is directory or file it will kinda figure out itself assuming theirs only 2 files in
     # the dir and u do -neglect
-    parser.add_argument("-onefile", help="Input Absolute Path to File to Analyze")
+    parser.add_argument(
+        "-onefile", help="Input Absolute Path to File to Analyze")
     parser.add_argument(
         "-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY"
     )
-    #Argument if to get how many variables 
-    parser.add_argument("--vars", help="Get how many variables are in the file")
+    # Argument if to get how many variables
+    parser.add_argument(
+        "--vars", help="Get how many variables are in the file")
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
@@ -88,7 +95,8 @@ if __name__ == "__main__":
             for dir_path, _, filenames in os.walk(path.df):
                 for f in filenames:
                     if f.endswith(".py"):
-                        paths.append(os.path.abspath(os.path.join(dir_path, f)))
+                        paths.append(os.path.abspath(
+                            os.path.join(dir_path, f)))
             # remove neglect from paths
             if path.neglect is not None:
                 for line in paths:
@@ -143,28 +151,32 @@ class Stat:
     def __scrape_imports(self, get_assets=True):
         result = {}
         if len(self.directory) > 1:
-            with Status('[blue]Scraping imports from multiple files...'):        
+            with Status('[blue]Scraping imports from multiple files...'):
                 # if get_assets:
                 #     print('[blue]Calculating assets ...\n')
                 for file_path in self.directory:
-                    from_imp = from_imports(input_file=file_path, get_assets=get_assets)
+                    from_imp = from_imports(
+                        input_file=file_path, get_assets=get_assets)
                     imp_ = import_imports(input_file=file_path)
 
                     self.add_from_imports_results(
                         from_import_list=from_imp, result_dictionary=result
                     )
 
-                    self.add_imports_to_results(import_list=imp_, result_dictionary=result)
+                    self.add_imports_to_results(
+                        import_list=imp_, result_dictionary=result)
         else:
             with Status('[blue]Scraping imports from single file...'):
-                from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
+                from_imp = from_imports(
+                    input_file=self.directory[0], get_assets=get_assets)
                 imp_ = import_imports(input_file=self.directory[0])
 
                 self.add_from_imports_results(
                     from_import_list=from_imp, result_dictionary=result
                 )
 
-                self.add_imports_to_results(import_list=imp_, result_dictionary=result)
+                self.add_imports_to_results(
+                    import_list=imp_, result_dictionary=result)
 
         return result
 
@@ -214,7 +226,8 @@ class Stat:
                         count = sum(1 for _ in open_file if _.rstrip("\n"))
 
                     file_path = (
-                        file_path.split("../")[1] if ".." in file_path else file_path
+                        file_path.split(
+                            "../")[1] if ".." in file_path else file_path
                     )
                     line_count[file_path] = count
         else:
@@ -242,7 +255,7 @@ class Stat:
                 reverse=True,
             )
         }
-    
+
         if n_variables is not None:
             return {k: v for k, v in list(most_used_variable.items())[:n_variables]}
         else:
@@ -253,11 +266,11 @@ class Stat:
         imports = self.__scrape_imports(get_assets=True)
 
         from_ = [k for k in imports.keys() if "from" in k]
-        #sort by frequency of imports
+        # sort by frequency of imports
         from_.sort()
 
         import_ = [k for k in imports.keys() if "import" in k]
-        #Sort by frequency of import
+        # Sort by frequency of import
         import_.sort(key=lambda x: imports[x], reverse=True)
         import_.sort()
 
@@ -271,7 +284,7 @@ class Stat:
             all_imports.extend(all_)
             all_imports = list(set(all_imports))
             all_imports.sort()
-            
+
             return all_imports
         else:
             raise OutputNotSpecified(
@@ -298,16 +311,17 @@ class Stat:
                 for line in lines:
                     for each in func_names:
                         if each in line:
-                            most_called_func[each] = most_called_func.get(each, 0) + 1
-                            
-        #Sort by frquency of use
+                            most_called_func[each] = most_called_func.get(
+                                each, 0) + 1
+
+        # Sort by frquency of use
         most_called_func = {
             k: v
             for k, v in sorted(
                 most_called_func.items(), key=lambda item: item[1], reverse=True
             )
         }
-        #if frequency is 1 then replace it with text 'Only Defined'
+        # if frequency is 1 then replace it with text 'Only Defined'
         for key, value in most_called_func.items():
             if value == 1:
                 most_called_func[key] = "[red]Defined Only[/]"
@@ -392,11 +406,11 @@ class VisualWrapper:
     def get_varible(self, n_variables=3):
         if args.vars:
             n_variables = int(args.vars)
-            print(len(self.stat.most_used_variable(100000))) #Gets max number of varibles assuming their not more then 100000 cloud implement a fix to this astro but it will do for now
+            # Gets max number of varibles assuming their not more then 100000 cloud implement a fix to this astro but it will do for now
+            print(len(self.stat.most_used_variable(100000)))
             if int(n_variables) > int(len(self.stat.most_used_variable(100000))):
                 n_variables = int(len(self.stat.most_used_variable(100000)))
-                
-                
+
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
@@ -428,9 +442,8 @@ class VisualWrapper:
         # print(self.variable_panel)
         return self.variable_panel
 
-    def get_import_count(
-        self,
-    ):  
+    def get_import_count(self):
+        learn = 0
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
@@ -440,13 +453,15 @@ class VisualWrapper:
         else:
             coulv2 = "pale_turquoise1"
         imports = self.stat.import_count()
-        #get only from stuff from imports
+        # get only from stuff from imports
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
+        len_import_imports = len(imports)
         # add \n after each element except after last element
         imports_md = "\n".join(
             [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()]
         )
+        
         imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
         self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
         self.import_panel = Panel(
@@ -454,22 +469,51 @@ class VisualWrapper:
             title="[black]Count of 'import' statements",
             title_align="left",
             border_style="blue",
+            height=learn
         )
+        #amount of elements in dict imports_md
         
-        imports = {k: v for k, v in all_imports.items() if k.startswith("from")}
+            
+        imports_from = {k: v for k, v in all_imports.items()
+                   if k.startswith("from")}
+        len_from_imports = len(imports_from)
         # add \n after each element except after last element
-        imports_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()]
+        imports_md_from = "\n".join(
+            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports_from.items()]
         )
-        imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
-        self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
+        imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
+        self.import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
+    
+        
         self.from_imports = Panel(
-            self.import_md, 
+            self.import_md_from,
             title="[black]Count of 'from' statements",
             title_align="left",
             border_style="blue",
+            height=learn
         )
         
+        if len_import_imports > len_from_imports:
+            learn = len_import_imports
+        elif len_import_imports < len_from_imports:
+            learn = len_from_imports
+        
+        self.import_panel = Panel(
+            self.import_md,
+            title="[black]Count of 'import' statements",
+            title_align="left",
+            border_style="blue",
+            height=learn + 2
+        )
+        
+        self.from_imports = Panel(
+            self.import_md_from,
+            title="[black]Count of 'from' statements",
+            title_align="left",
+            border_style="blue",
+            height=learn + 2
+        )
+
             
         # print(self.import_panel)
         return self.import_panel, self.from_imports
@@ -487,7 +531,8 @@ class VisualWrapper:
         # add \n after each element except after last element
 
         func_names_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in most_called_func.items()]
+            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k,
+                v in most_called_func.items()]
         )
 
         func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
@@ -503,8 +548,10 @@ class VisualWrapper:
         return self.func_panel
 
     def get_all(self):
+        imp_count = self.get_import_count()
         grp = Columns([self.get_line_count(), self.get_varible()])
-        grp2 = Columns([self.get_import_count()[0], self.get_import_count()[1]], padding=(0, 1))
+        grp2 = Columns([imp_count[0],
+                       imp_count[1]], padding=(0, 1))
         mygrp = Group(
             self.get_quickstat(),
             Rule('[black]Stats'),
@@ -513,13 +560,13 @@ class VisualWrapper:
             grp2,
         )
 
-        return Panel(mygrp, title="[black]All Stat", title_align="middle", width=None)
+        return Panel(mygrp, title="[black]All Stats", title_align="middle", width=None)
 
 
 old_info = Stat(paths)
-info = VisualWrapper(paths)
+info = VisualWrapper(paths, adhd_mode=True)
 
-print(info.get_all())       
+print(info.get_all())
 
 # print(info.get_quickstat())
 # print(info.get_line_count())
