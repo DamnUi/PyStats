@@ -19,6 +19,7 @@ from rich.layout import Layout
 from rich.columns import Columns
 
 
+
 install_traceback(show_locals=False)
 
 if __name__ == "__main__":
@@ -413,7 +414,7 @@ class VisualWrapper:
 
     def get_import_count(
         self,
-    ):  # This function needs some refining other then this i think the other two are good
+    ):  
         if self.adhd_mode:
             coul = self.get_random_colour()
         else:
@@ -423,6 +424,9 @@ class VisualWrapper:
         else:
             coulv2 = "pale_turquoise1"
         imports = self.stat.import_count()
+        #get only from stuff from imports
+        all_imports = imports
+        imports = {k: v for k, v in imports.items() if k.startswith("import")}
         # add \n after each element except after last element
         imports_md = "\n".join(
             [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()]
@@ -431,12 +435,28 @@ class VisualWrapper:
         self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
         self.import_panel = Panel(
             self.import_md,
-            title="[black]Imports Count",
+            title="[black]Count of 'import' statements",
             title_align="left",
             border_style="blue",
         )
+        
+        imports = {k: v for k, v in all_imports.items() if k.startswith("from")}
+        # add \n after each element except after last element
+        imports_md = "\n".join(
+            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()]
+        )
+        imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
+        self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
+        self.from_imports = Panel(
+            self.import_md, 
+            title="[black]Count of 'from' statements",
+            title_align="left",
+            border_style="blue",
+        )
+        
+            
         # print(self.import_panel)
-        return self.import_panel
+        return self.import_panel, self.from_imports
 
     def get_most_called_func(self):
         func_names, most_called_func = self.stat.most_called_func()
@@ -467,18 +487,13 @@ class VisualWrapper:
         return self.func_panel
 
     def get_all(self):
-        self.all_panels = [
-            self.get_quickstat(),
-            self.get_line_count(),
-            self.get_varible(),
-            self.get_import_count(),
-        ]
         grp = Columns([self.get_line_count(), self.get_varible()])
+        grp2 = Columns([self.get_import_count()[0], self.get_import_count()[1]], padding=(0, 1))
         mygrp = Group(
             self.get_quickstat(),
             grp,
             self.get_most_called_func(),
-            self.get_import_count(),
+            grp2,
         )
 
         return Panel(mygrp, title="[black]All Stat", title_align="middle", width=None)
