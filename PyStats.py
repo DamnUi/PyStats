@@ -2,28 +2,23 @@ import argparse
 import ctypes
 import itertools
 import os
+import random
 import re
 import sys
 
 from rich import print
+from rich.align import Align
+from rich.columns import Columns
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.status import Status
 from rich.traceback import install as install_traceback
 
 from utilities import from_imports, import_imports, is_admin, list_to_counter_dictionary
 
-from rich.console import Group
-from rich.console import Console
-from rich.panel import Panel
-from rich.markdown import Markdown
-from rich.align import Align
-from rich.layout import Layout
-from rich.columns import Columns
-from rich.rule import Rule
-from rich.status import Status
-from rich.text import Text
-
 console = Console()
-print = console.print
-
+# print = console.print
 
 install_traceback(show_locals=False)
 
@@ -37,30 +32,26 @@ if __name__ == "__main__":
         if is_admin():
             print("Running the script with ADMIN privileges.")
         else:
-            ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, " ".join(sys.argv), None, 1
-            )
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv),
+                                                None, 1)
 
     parser = argparse.ArgumentParser()
+
     # if no arguments are passed, the default is set to the current directory
     parser.add_argument("-df", help="Input Absolute Path to Directory or File")
+
     # df is directory or file it will kinda figure out itself assuming theirs only 2 files in
     # the dir and u do -neglect
-    parser.add_argument(
-        "-onefile", help="Input Absolute Path to File to Analyze")
-    parser.add_argument(
-        "-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY"
-    )
+    parser.add_argument("-onefile", help="Input Absolute Path to File to Analyze")
+    parser.add_argument("-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY")
+
     # Argument if to get how many variables
-    parser.add_argument(
-        "--vars", help="Get how many variables are in the file")
+    parser.add_argument("--vars", help="Get how many variables are in the file")
+
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
-    # 2 Variables
-    # path.df
-    # path.onefile ignores everything and makes sure u have just onefile ur scanning
-    # Path.neglect
+
     if args.vars is None:
         args.vars = False
     if not any(vars(args).values()):
@@ -68,11 +59,9 @@ if __name__ == "__main__":
         separator = "\\" if os_name == "nt" else "/"
 
         # get file paths
-        paths = [
-            f"{os.getcwd()}{separator}{py_file}"
-            for py_file in os.listdir(os.getcwd())
-            if os.path.isfile(py_file) and py_file.endswith(".py")
-        ]
+        paths = [f"{os.getcwd()}{separator}{py_file}"
+                 for py_file in os.listdir(os.getcwd())
+                 if os.path.isfile(py_file) and py_file.endswith(".py")]
 
         # get relative paths (full paths are too big)
         paths = [os.path.relpath(path) for path in paths]
@@ -81,22 +70,18 @@ if __name__ == "__main__":
         paths.sort()
 
         # Automatic mode
-        print(
-            "Currently in Automatic mode this selects all files only in your current directory "
-            "ending with py extension"
-        )
+        print("Currently in Automatic mode this selects all files only in your current directory "
+              "ending with py extension")
     elif path.onefile:
         paths = [path.onefile]
     else:
         # Determine if it's a directory or file
         if os.path.isdir(path.df):
             # If it's a directory get all absolute paths of files in it ending with py
-            paths = []
-            for dir_path, _, filenames in os.walk(path.df):
-                for f in filenames:
-                    if f.endswith(".py"):
-                        paths.append(os.path.abspath(
-                            os.path.join(dir_path, f)))
+            paths = [[os.path.abspath(os.path.join(dir_path, f))
+                      for f in filenames if f.endswith('.py')]
+                     for dir_path, _, filenames in os.walk(path.df)]
+
             # remove neglect from paths
             if path.neglect is not None:
                 for line in paths:
@@ -106,7 +91,6 @@ if __name__ == "__main__":
                         paths.remove(original_line)
         else:
             paths = [path.df]
-    # That ends classification of the file
 
 
 class OutputNotSpecified(Exception):
@@ -124,10 +108,8 @@ class Stat:
             exit()
         else:
             dir_ = [x for x in self.directory if "__init__" in x]
-            self.founds.append(
-                f"[green]{len(self.directory)} files found in {len(dir_)} folders.\n"
-            )
-            # print("[yellow]Exploring further ...\n")
+            self.founds.append(f"[green]{len(self.directory)} files found in {len(dir_)} "
+                               f"folders.\n")
 
     def return_founds(self):
         return self.founds
@@ -155,46 +137,35 @@ class Stat:
                 # if get_assets:
                 #     print('[blue]Calculating assets ...\n')
                 for file_path in self.directory:
-                    from_imp = from_imports(
-                        input_file=file_path, get_assets=get_assets)
+                    from_imp = from_imports(input_file=file_path, get_assets=get_assets)
                     imp_ = import_imports(input_file=file_path)
 
-                    self.add_from_imports_results(
-                        from_import_list=from_imp, result_dictionary=result
-                    )
+                    self.add_from_imports_results(from_import_list=from_imp,
+                                                  result_dictionary=result)
 
-                    self.add_imports_to_results(
-                        import_list=imp_, result_dictionary=result)
+                    self.add_imports_to_results(import_list=imp_, result_dictionary=result)
         else:
             with Status('[blue]Scraping imports from single file...'):
-                from_imp = from_imports(
-                    input_file=self.directory[0], get_assets=get_assets)
+                from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
                 imp_ = import_imports(input_file=self.directory[0])
 
-                self.add_from_imports_results(
-                    from_import_list=from_imp, result_dictionary=result
-                )
+                self.add_from_imports_results(from_import_list=from_imp, result_dictionary=result)
 
-                self.add_imports_to_results(
-                    import_list=imp_, result_dictionary=result)
+                self.add_imports_to_results(import_list=imp_, result_dictionary=result)
 
         return result
 
     def __scrape_variables(self, full_line_of_variable=False):
-        variables_ = [
-            line_
-            for file_ in self.directory
-            for line_ in open(file_, encoding="utf-8")
-            if re.match("^\s*\w+\s=\s", line_) or re.match("^\s*self.\w+\s=\s", line_)
-        ]
+        variables_ = [line_
+                      for file_ in self.directory
+                      for line_ in open(file_, encoding="utf-8")
+                      if re.match("^\s*\w+\s=\s", line_) or re.match("^\s*self.\w+\s=\s", line_)]
 
-        list_of_variables = [
-            variables.strip()
-            if full_line_of_variable
-            else variables.split("=")[0].strip().replace("self.", "")
-            for variables in variables_
-            if variables
-        ]
+        list_of_variables = [variables.strip()
+                             if full_line_of_variable
+                             else variables.split("=")[0].strip().replace("self.", "")
+                             for variables in variables_
+                             if variables]
 
         return list_of_variables
 
@@ -225,10 +196,7 @@ class Stat:
                     else:
                         count = sum(1 for _ in open_file if _.rstrip("\n"))
 
-                    file_path = (
-                        file_path.split(
-                            "../")[1] if ".." in file_path else file_path
-                    )
+                    file_path = (file_path.split("../")[1] if ".." in file_path else file_path)
                     line_count[file_path] = count
         else:
             with open(self.directory[0], encoding="utf8") as open_file:
@@ -247,17 +215,14 @@ class Stat:
 
         # print(f'[pale_turquoise1]{start}.\n')
 
-        most_used_variable = {
-            key: value
-            for key, value in sorted(
-                list_to_counter_dictionary(self.__scrape_variables()).items(),
-                key=lambda item: item[1],
-                reverse=True,
-            )
-        }
+        most_used_variable = {key: value
+                              for key, value in
+                              sorted(list_to_counter_dictionary(self.__scrape_variables()).items(),
+                                     key=lambda item: item[1],
+                                     reverse=True)}
 
         if n_variables is not None:
-            return {k: v for k, v in list(most_used_variable.items())[:n_variables]}
+            return {key: value for key, value in list(most_used_variable.items())[:n_variables]}
         else:
             return most_used_variable
 
@@ -287,9 +252,8 @@ class Stat:
 
             return all_imports
         else:
-            raise OutputNotSpecified(
-                "The out_import_type must be one of 'from', 'import', " "or 'all'."
-            )
+            raise OutputNotSpecified("The out_import_type must be one of 'from', 'import', "
+                                     "or 'all'.")
 
     def most_called_func(self):
 
@@ -300,27 +264,23 @@ class Stat:
                 lines = [line.rstrip("\n") for line in open_file]
 
                 # func names with call '^\s*def\s+(\w+)\s*\('
-                func_names = [
-                    re.match("^\s*def\s+(\w+)\s*\(", line).group(1)
-                    for line in lines
-                    if re.match("^\s*def\s+(\w+)\s*\(", line)
-                ]
+                func_names = [re.match("^\s*def\s+(\w+)\s*\(", line).group(1)
+                              for line in lines
+                              if re.match("^\s*def\s+(\w+)\s*\(", line)]
                 # add () to func_names
                 func_names = [f"{func_name}()" for func_name in func_names]
 
                 for line in lines:
                     for each in func_names:
                         if each in line:
-                            most_called_func[each] = most_called_func.get(
-                                each, 0) + 1
+                            most_called_func[each] = most_called_func.get(each, 0) + 1
 
-        # Sort by frquency of use
-        most_called_func = {
-            k: v
-            for k, v in sorted(
-                most_called_func.items(), key=lambda item: item[1], reverse=True
-            )
-        }
+        # Sort by frequency of use
+        most_called_func = {key: value
+                            for key, value in
+                            sorted(most_called_func.items(), key=lambda item: item[1],
+                                   reverse=True)}
+
         # if frequency is 1 then replace it with text 'Only Defined'
         for key, value in most_called_func.items():
             if value == 1:
@@ -332,8 +292,8 @@ class Stat:
 
 
 class VisualWrapper:
-    def __init__(self, dir, adhd_mode=False, extra_adhd=False) -> None:
-        self.directory = dir
+    def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
+        self.directory = directory
         self.stat = Stat(self.directory)
         self.adhd_mode = adhd_mode
         self.adhd_modev2 = extra_adhd
@@ -342,36 +302,26 @@ class VisualWrapper:
     def panel_print(thing, border_style):
         return Panel(thing, border_style=border_style)
 
-    def get_random_colour(self):
-        import random
+    @staticmethod
+    def get_random_colour():
+        good_colours = ["medium_spring_green",
+                        "spring_green4",
+                        "slate_blue1",
+                        "indian_red",
+                        "gold1",
+                        "medium_purple2"]
+        return random.choice(good_colours)
 
-        self.good_colours = [
-            "medium_spring_green",
-            "spring_green4",
-            "slate_blue1",
-            "indian_red",
-            "grey63",
-            "grey63",
-            "medium_purple2",
-        ]
-        return random.choice(self.good_colours)
-
-    def get_quickstat(self):
+    def quick_stats(self):
         founds = self.stat.return_founds()
-        self.quick_md = (
-            f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
-        )
-        self.quick = Align(
-            Panel(
-                Align(self.quick_md, align="center"),
-                title="Quick Stat",
-                title_align="center",
-                width=1000,
-            ),
-            align="left",
-            style="black",
-        )  # Can Change border style here by changing style
-        # print(self.quick)
+        self.quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
+        self.quick = Align(renderable=Panel(renderable=Align(renderable=self.quick_md,
+                                                             align="center"),
+                                            title="Quick Stat",
+                                            title_align="center"),
+                           align="left",
+                           style="black")  # Can Change border style here by changing style
+
         return self.quick
 
     def get_line_count(self):
@@ -383,30 +333,25 @@ class VisualWrapper:
             coulv2 = self.get_random_colour()
         else:
             coulv2 = "pale_turquoise1"
-        # remove the {} of Stat(paths).line_count()
+
         called = self.stat.line_count()
-        # add \n after each element except after last element
-        called_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in called.items()]
-        )
-        # make the first part coloured without re
+        called_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in called.items()])
 
         called_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", called_md)
 
         self.line_count_md = f"""[pale_turquoise1]{called_md}[/]"""
-        self.line_count_panel = Panel(
-            self.line_count_md,
-            title="[black]Line Count",
-            title_align="left",
-            border_style="blue",
-        )
-        # print(self.line_count_panel)
+        self.line_count_panel = Panel(renderable=self.line_count_md,
+                                      title="[black]Line Count",
+                                      title_align="left",
+                                      border_style="blue")
+
         return self.line_count_panel
 
-    def get_varible(self, n_variables=3):
+    def get_variable(self, n_variables=3):
         if args.vars:
             n_variables = int(args.vars)
-            # Gets max number of varibles assuming their not more then 100000 cloud implement a fix to this astro but it will do for now
+            # Gets max number of variables assuming their not more than 100000 cloud implement a
+            # fix to this astro, but it will do for now
             print(len(self.stat.most_used_variable(100000)))
             if int(n_variables) > int(len(self.stat.most_used_variable(100000))):
                 n_variables = int(len(self.stat.most_used_variable(100000)))
@@ -427,19 +372,15 @@ class VisualWrapper:
         else:
             coulv2 = "pale_turquoise1"
         # add \n after each element except after last element
-        variables_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in variables.items()]
-        )
+        variables_md = "\n".join([f"[{coulv2}]{key}[/]: [{coul}]{value}[/]"
+                                  for key, value in variables.items()])
         variables_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", variables_md)
         self.variable_md = f"""[pale_turquoise1]{variables_md}[/]"""
-        self.variable_panel = Panel(
-            self.variable_md,
-            title=f"[black]{start}",
-            title_align="left",
-            border_style="blue",
-            width=34,
-        )
-        # print(self.variable_panel)
+        self.variable_panel = Panel(renderable=self.variable_md,
+                                    title=f"[black]{start}",
+                                    title_align="left",
+                                    border_style="blue")
+
         return self.variable_panel
 
     def get_import_count(self):
@@ -453,69 +394,52 @@ class VisualWrapper:
         else:
             coulv2 = "pale_turquoise1"
         imports = self.stat.import_count()
-        # get only from stuff from imports
+
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
         # add \n after each element except after last element
-        imports_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()]
-        )
-        
+        imports_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()])
+
         imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
         self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
-        self.import_panel = Panel(
-            self.import_md,
-            title="[black]Count of 'import' statements",
-            title_align="left",
-            border_style="blue",
-            height=learn
-        )
-        #amount of elements in dict imports_md
-        
-            
-        imports_from = {k: v for k, v in all_imports.items()
-                   if k.startswith("from")}
+        self.import_panel = Panel(renderable=self.import_md,
+                                  title="[black]Count of 'import' statements",
+                                  title_align="left",
+                                  border_style="blue",
+                                  height=learn)
+
+        imports_from = {k: v for k, v in all_imports.items() if k.startswith("from")}
         len_from_imports = len(imports_from)
         # add \n after each element except after last element
-        imports_md_from = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports_from.items()]
-        )
+        imports_md_from = "\n".join([f"[{coulv2}]{key}[/]: [{coul}]{value}[/]"
+                                     for key, value in imports_from.items()])
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
         self.import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
-    
-        
-        self.from_imports = Panel(
-            self.import_md_from,
-            title="[black]Count of 'from' statements",
-            title_align="left",
-            border_style="blue",
-            height=learn
-        )
-        
+
+        self.from_imports = Panel(renderable=self.import_md_from,
+                                  title="[black]Count of 'from' statements",
+                                  title_align="left",
+                                  border_style="blue",
+                                  height=learn)
+
         if len_import_imports > len_from_imports:
             learn = len_import_imports
         elif len_import_imports < len_from_imports:
             learn = len_from_imports
-        
-        self.import_panel = Panel(
-            self.import_md,
-            title="[black]Count of 'import' statements",
-            title_align="left",
-            border_style="blue",
-            height=learn + 2
-        )
-        
-        self.from_imports = Panel(
-            self.import_md_from,
-            title="[black]Count of 'from' statements",
-            title_align="left",
-            border_style="blue",
-            height=learn + 2
-        )
 
-            
-        # print(self.import_panel)
+        self.import_panel = Panel(renderable=self.import_md,
+                                  title="[black]Count of 'import' statements",
+                                  title_align="left",
+                                  border_style="blue",
+                                  height=learn + 2)
+
+        self.from_imports = Panel(renderable=self.import_md_from,
+                                  title="[black]Count of 'from' statements",
+                                  title_align="left",
+                                  border_style="blue",
+                                  height=learn + 2)
+
         return self.import_panel, self.from_imports
 
     def get_most_called_func(self):
@@ -530,37 +454,28 @@ class VisualWrapper:
             coulv2 = "pale_turquoise1"
         # add \n after each element except after last element
 
-        func_names_md = "\n".join(
-            [f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k,
-                v in most_called_func.items()]
-        )
+        func_names_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]"
+                                   for k, v in most_called_func.items()])
 
         func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
 
         self.func_md = f"""[pale_turquoise1]{func_names_md}[/]"""
-        self.func_panel = Panel(
-            self.func_md,
-            title="[black]Most Called Functions",
-            title_align="left",
-            border_style="blue",
-        )
-        # print(self.func_panel)
+        self.func_panel = Panel(renderable=self.func_md,
+                                title="[black]Most Called Functions",
+                                title_align="left",
+                                border_style="blue")
+
         return self.func_panel
 
     def get_all(self):
         imp_count = self.get_import_count()
-        grp = Columns([self.get_line_count(), self.get_varible()])
+        grp = Columns([self.get_line_count(), self.get_variable()])
         grp2 = Columns([imp_count[0],
-                       imp_count[1]], padding=(0, 1))
-        mygrp = Group(
-            self.get_quickstat(),
-            Rule('[black]Stats'),
-            grp,
-            self.get_most_called_func(),
-            grp2,
-        )
+                        imp_count[1]], padding=(0, 1))
+        mygrp = Group(self.quick_stats(), Rule('[black]Stats'), grp, self.get_most_called_func(),
+                      grp2)
 
-        return Panel(mygrp, title="[black]All Stats", title_align="middle", width=None)
+        return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None)
 
 
 old_info = Stat(paths)
@@ -568,6 +483,6 @@ info = VisualWrapper(paths, adhd_mode=True)
 
 print(info.get_all())
 
-# print(info.get_quickstat())
+# print(info.quick_stats())
 # print(info.get_line_count())
-# print(info.get_varible())
+# print(info.get_variable())

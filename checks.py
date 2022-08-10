@@ -1,8 +1,8 @@
-def i_definied_this(x):
-    return x**2
+def i_defined_this():
+    pass
 
 
-i_definied_this()
-i_definied_this()
-i_definied_this()
-i_definied_this()
+i_defined_this()
+i_defined_this()
+i_defined_this()
+i_defined_this()
