@@ -271,7 +271,7 @@ class Stat:
                 func_names = [f"{func_name}" for func_name in func_names if
                               '__init__' not in func_name]
 
-                print(func_names)
+                #print(func_names) # for debugging purposes
 
                 for each in func_names:
                     matched_lines = [re.match(rf"(def)\s({each})\(", i.strip())
@@ -285,7 +285,7 @@ class Stat:
 
                     trim = [matched_line for matched_line in matched_lines if matched_line]
 
-                    print(trim)
+                    #print(trim) # for debugging---------------------------------------------------------------------------------------------------------------
 
                     most_called_func[each] = len(trim) - 1
 
@@ -331,7 +331,7 @@ class VisualWrapper:
         quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
         quick = Align(renderable=Panel(renderable=Align(renderable=quick_md,
                                                         align="center"),
-                                       title="Quick Stat",
+                                       title="[black]Quick Stats",
                                        title_align="center"),
                       align="center",
                       style="black")  # Can Change border style here by changing style
@@ -438,7 +438,7 @@ class VisualWrapper:
 
         func_md = f"""[pale_turquoise1]{func_names_md}[/]"""
         func_panel = Panel(renderable=func_md,
-                           title="[black]Most Called Functions",
+                           title="[black]Most Called Functions [red](one is subtracted becuase one time the function is definied)[/]",
                            title_align="left",
                            border_style="blue")
 
@@ -455,14 +455,14 @@ class VisualWrapper:
         grp = Columns([self.get_line_count(), self.get_variable()])
         grp2 = Columns([imp_count[0],
                         imp_count[1]], padding=(0, 1))
-        mygrp = Group(self.quick_stats(), Rule('[black]Stats'), grp, self.get_most_called_func(),
+        mygrp = Group(self.quick_stats(), Rule('[black]Stats'), grp, Rule('[black]Functions', style='red'), self.get_most_called_func(), Rule('[black]Functions', style='yellow'),
                       grp2)
 
-        return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None)
+        return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None, style=self.get_random_colour())
 
 
 old_info = Stat(paths)
-info = VisualWrapper(paths, adhd_mode=True)
+info = VisualWrapper(paths)
 
 print(info.get_all())
 
