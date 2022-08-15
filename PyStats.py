@@ -319,7 +319,7 @@ class VisualWrapper:
                                                              align="center"),
                                             title="Quick Stat",
                                             title_align="center"),
-                           align="left",
+                           align="center",
                            style="black")  # Can Change border style here by changing style
 
         return self.quick

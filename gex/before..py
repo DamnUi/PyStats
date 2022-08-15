@@ -7,5 +7,5 @@ test_string = 'anything.here.will.be.remove.only.the.text.after.this.will.be.kep
 
 gex = re.sub(pattern, "", test_string) #removes all selected txt from string
 
-print(gex)
+print(gex)  
 
