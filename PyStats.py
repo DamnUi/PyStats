@@ -159,7 +159,7 @@ class Stat:
         variables_ = [line_
                       for file_ in self.directory
                       for line_ in open(file_, encoding="utf-8")
-                      if re.match("^\s*\w+\s=\s", line_) or re.match("^\s*self.\w+\s=\s", line_)]
+                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)]
 
         list_of_variables = [variables.strip()
                              if full_line_of_variable
@@ -264,16 +264,30 @@ class Stat:
                 lines = [line.rstrip("\n") for line in open_file]
 
                 # func names with call '^\s*def\s+(\w+)\s*\('
-                func_names = [re.match("^\s*def\s+(\w+)\s*\(", line).group(1)
+                func_names = [re.match(r"^\s*def\s+(\w+)\s*\(", line).group(1)
                               for line in lines
-                              if re.match("^\s*def\s+(\w+)\s*\(", line)]
-                # add () to func_names
-                func_names = [f"{func_name}()" for func_name in func_names]
+                              if re.match(r"^\s*def\s+(\w+)\s*\(", line)]
 
-                for line in lines:
-                    for each in func_names:
-                        if each in line:
-                            most_called_func[each] = most_called_func.get(each, 0) + 1
+                func_names = [f"{func_name}" for func_name in func_names if
+                              '__init__' not in func_name]
+
+                print(func_names)
+
+                for each in func_names:
+                    matched_lines = [re.match(rf"(def)\s({each})\(", i.strip())
+                                     or re.match(rf"self\.{each}\(", i.strip())
+                                     or re.match(rf"\w+\s=\s(self\.)({each})\(", i.strip())
+                                     or re.match(rf"\w+\s=\s(\w+\.)*({each})\(", i.strip())
+                                     or re.match(rf"(\w+\()*self.{each}\(", i.strip())
+                                     or re.match(rf"\w+,\s(\w+\s)*=\s(\w+.)*({each})\(", i.strip())
+                                     or re.match(rf"\w+\s=\s{each}\(", i.strip())
+                                     for i in lines]
+
+                    trim = [matched_line for matched_line in matched_lines if matched_line]
+
+                    print(trim)
+
+                    most_called_func[each] = len(trim) - 1
 
         # Sort by frequency of use
         most_called_func = {key: value
@@ -283,7 +297,7 @@ class Stat:
 
         # if frequency is 1 then replace it with text 'Only Defined'
         for key, value in most_called_func.items():
-            if value == 1:
+            if value == 0:
                 most_called_func[key] = "[red]Defined Only[/]"
         return func_names, most_called_func
 
@@ -314,52 +328,42 @@ class VisualWrapper:
 
     def quick_stats(self):
         founds = self.stat.return_founds()
-        self.quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
-        self.quick = Align(renderable=Panel(renderable=Align(renderable=self.quick_md,
-                                                             align="center"),
-                                            title="Quick Stat",
-                                            title_align="center"),
-                           align="center",
-                           style="black")  # Can Change border style here by changing style
+        quick_md = f"""{founds[0]}[/][u]Selected Files[/]: [b]{self.directory}[/]"""
+        quick = Align(renderable=Panel(renderable=Align(renderable=quick_md,
+                                                        align="center"),
+                                       title="Quick Stat",
+                                       title_align="center"),
+                      align="center",
+                      style="black")  # Can Change border style here by changing style
 
-        return self.quick
+        return quick
 
     def get_line_count(self):
-        if self.adhd_mode:
-            coul = self.get_random_colour()
-        else:
-            coul = "grey63"
-        if self.adhd_modev2:
-            coulv2 = self.get_random_colour()
-        else:
-            coulv2 = "pale_turquoise1"
+        color1, color2 = self.get_colors()
 
         called = self.stat.line_count()
-        called_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in called.items()])
+        called_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in called.items()])
 
         called_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", called_md)
 
-        self.line_count_md = f"""[pale_turquoise1]{called_md}[/]"""
-        self.line_count_panel = Panel(renderable=self.line_count_md,
-                                      title="[black]Line Count",
-                                      title_align="left",
-                                      border_style="blue")
+        line_count_md = f"""[pale_turquoise1]{called_md}[/]"""
+        line_count_panel = Panel(renderable=line_count_md,
+                                 title="[black]Line Count",
+                                 title_align="left",
+                                 border_style="blue")
 
-        return self.line_count_panel
+        return line_count_panel
 
     def get_variable(self, n_variables=3):
         if args.vars:
             n_variables = int(args.vars)
             # Gets max number of variables assuming their not more than 100000 cloud implement a
             # fix to this astro, but it will do for now
-            print(len(self.stat.most_used_variable(100000)))
+            # print(len(self.stat.most_used_variable(100000)))
             if int(n_variables) > int(len(self.stat.most_used_variable(100000))):
                 n_variables = int(len(self.stat.most_used_variable(100000)))
 
-        if self.adhd_mode:
-            coul = self.get_random_colour()
-        else:
-            coul = "grey63"
+        color1, color2 = self.get_colors()
 
         variables = self.stat.most_used_variable(n_variables)
         if n_variables is None:
@@ -367,105 +371,84 @@ class VisualWrapper:
         else:
             start = f"Listing top [b u]{n_variables}[/] variables used"
 
-        if self.adhd_modev2:
-            coulv2 = self.get_random_colour()
-        else:
-            coulv2 = "pale_turquoise1"
         # add \n after each element except after last element
-        variables_md = "\n".join([f"[{coulv2}]{key}[/]: [{coul}]{value}[/]"
+        variables_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                   for key, value in variables.items()])
         variables_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", variables_md)
-        self.variable_md = f"""[pale_turquoise1]{variables_md}[/]"""
-        self.variable_panel = Panel(renderable=self.variable_md,
-                                    title=f"[black]{start}",
-                                    title_align="left",
-                                    border_style="blue")
+        variable_md = f"""[pale_turquoise1]{variables_md}[/]"""
+        variable_panel = Panel(renderable=variable_md,
+                               title=f"[black]{start}",
+                               title_align="left",
+                               border_style="blue")
 
-        return self.variable_panel
+        return variable_panel
 
     def get_import_count(self):
         learn = 0
-        if self.adhd_mode:
-            coul = self.get_random_colour()
-        else:
-            coul = "grey63"
-        if self.adhd_modev2:
-            coulv2 = self.get_random_colour()
-        else:
-            coulv2 = "pale_turquoise1"
+        color1, color2 = self.get_colors()
         imports = self.stat.import_count()
 
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
         # add \n after each element except after last element
-        imports_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]" for k, v in imports.items()])
+        imports_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in imports.items()])
 
         imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
-        self.import_md = f"""[pale_turquoise1]{imports_md}[/]"""
-        self.import_panel = Panel(renderable=self.import_md,
-                                  title="[black]Count of 'import' statements",
-                                  title_align="left",
-                                  border_style="blue",
-                                  height=learn)
+        import_md = f"""[pale_turquoise1]{imports_md}[/]"""
 
         imports_from = {k: v for k, v in all_imports.items() if k.startswith("from")}
         len_from_imports = len(imports_from)
         # add \n after each element except after last element
-        imports_md_from = "\n".join([f"[{coulv2}]{key}[/]: [{coul}]{value}[/]"
+        imports_md_from = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                      for key, value in imports_from.items()])
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
-        self.import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
-
-        self.from_imports = Panel(renderable=self.import_md_from,
-                                  title="[black]Count of 'from' statements",
-                                  title_align="left",
-                                  border_style="blue",
-                                  height=learn)
+        import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
 
         if len_import_imports > len_from_imports:
             learn = len_import_imports
         elif len_import_imports < len_from_imports:
             learn = len_from_imports
 
-        self.import_panel = Panel(renderable=self.import_md,
-                                  title="[black]Count of 'import' statements",
-                                  title_align="left",
-                                  border_style="blue",
-                                  height=learn + 2)
+        import_panel = Panel(renderable=import_md,
+                             title="[black]Count of 'import' statements",
+                             title_align="left",
+                             border_style="blue",
+                             height=learn + 2)
 
-        self.from_imports = Panel(renderable=self.import_md_from,
+        from_import_panel = Panel(renderable=import_md_from,
                                   title="[black]Count of 'from' statements",
                                   title_align="left",
                                   border_style="blue",
                                   height=learn + 2)
 
-        return self.import_panel, self.from_imports
+        return import_panel, from_import_panel
 
     def get_most_called_func(self):
         func_names, most_called_func = self.stat.most_called_func()
-        if self.adhd_mode:
-            coul = self.get_random_colour()
-        else:
-            coul = "grey63"
-        if self.adhd_modev2:
-            coulv2 = self.get_random_colour()
-        else:
-            coulv2 = "pale_turquoise1"
+        color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
+        color2 = self.get_random_colour() if self.adhd_modev2 else 'pale_turquoise1'
+        color1, color2 = self.get_colors()
         # add \n after each element except after last element
 
-        func_names_md = "\n".join([f"[{coulv2}]{k}[/]: [{coul}]{v}[/]"
+        func_names_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]"
                                    for k, v in most_called_func.items()])
 
         func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
 
-        self.func_md = f"""[pale_turquoise1]{func_names_md}[/]"""
-        self.func_panel = Panel(renderable=self.func_md,
-                                title="[black]Most Called Functions",
-                                title_align="left",
-                                border_style="blue")
+        func_md = f"""[pale_turquoise1]{func_names_md}[/]"""
+        func_panel = Panel(renderable=func_md,
+                           title="[black]Most Called Functions",
+                           title_align="left",
+                           border_style="blue")
 
-        return self.func_panel
+        return func_panel
+
+    def get_colors(self):
+        color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
+        color2 = self.get_random_colour() if self.adhd_modev2 else 'pale_turquoise1'
+
+        return color1, color2
 
     def get_all(self):
         imp_count = self.get_import_count()
