@@ -506,3 +506,4 @@ if args.adhd:
     info = VisualWrapper(working_path, adhd_mode=True, extra_adhd=True)
 
 print(info.get_all())
+# test
