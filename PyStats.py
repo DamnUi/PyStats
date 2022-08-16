@@ -6,14 +6,18 @@ import random
 import re
 import sys
 
+
+from rich.status import Status
 from rich import print
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.status import Status
+from rich.progress import Progress
 from rich.traceback import install as install_traceback
+
+
 
 from utilities import from_imports, import_imports, is_admin, list_to_counter_dictionary
 
@@ -136,25 +140,25 @@ class Stat:
     def __scrape_imports(self, get_assets=True):
         result = {}
         if len(self.directory) > 1:
-            with Status('[blue]Scraping imports from multiple files...'):
-                # if get_assets:
-                #     print('[blue]Calculating assets ...\n')
-                for file_path in self.directory:
-                    from_imp = from_imports(input_file=file_path, get_assets=get_assets)
-                    imp_ = import_imports(input_file=file_path)
+        
+            # if get_assets:
+            #     print('[blue]Calculating assets ...\n')
+            for file_path in self.directory:
+                from_imp = from_imports(input_file=file_path, get_assets=get_assets)
+                imp_ = import_imports(input_file=file_path)
 
-                    self.add_from_imports_results(from_import_list=from_imp,
-                                                  result_dictionary=result)
-
-                    self.add_imports_to_results(import_list=imp_, result_dictionary=result)
-        else:
-            with Status('[blue]Scraping imports from single file...'):
-                from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
-                imp_ = import_imports(input_file=self.directory[0])
-
-                self.add_from_imports_results(from_import_list=from_imp, result_dictionary=result)
+                self.add_from_imports_results(from_import_list=from_imp,
+                                                result_dictionary=result)
 
                 self.add_imports_to_results(import_list=imp_, result_dictionary=result)
+        else:
+        
+            from_imp = from_imports(input_file=self.directory[0], get_assets=get_assets)
+            imp_ = import_imports(input_file=self.directory[0])
+
+            self.add_from_imports_results(from_import_list=from_imp, result_dictionary=result)
+
+            self.add_imports_to_results(import_list=imp_, result_dictionary=result)
 
         return result
 
@@ -406,6 +410,7 @@ class VisualWrapper:
         return line_count_panel
 
     def get_variable(self, n_variables=3):
+        n_variables = len(self.directory)
         if args.vars:
             n_variables = int(args.vars)
             # Gets max number of variables assuming their not more than 100000 cloud implement a
@@ -464,14 +469,12 @@ class VisualWrapper:
         import_panel = Panel(renderable=import_md,
                              title="[black]Count of 'import' statements",
                              title_align="left",
-                             border_style="blue",
-                             height=learn + 2)
+                             border_style="blue",)
 
         from_import_panel = Panel(renderable=import_md_from,
                                   title="[black]Count of 'from' statements",
                                   title_align="left",
-                                  border_style="blue",
-                                  height=learn + 2)
+                                  border_style="blue",)
 
         return import_panel, from_import_panel
 
@@ -529,18 +532,27 @@ class VisualWrapper:
         color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
         color2 = self.get_random_colour() if self.adhd_modev2 else 'pale_turquoise1'
 
-        return color1, color2
+        return color1, color2        
 
+    
     def get_all(self):
-        imp_count = self.get_import_count()
-        grp = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
-        grp2 = Columns([imp_count[0],
-                        imp_count[1]], padding=(0, 1))
-        grp3 = Columns([self.get_func(), self.get_most_called_func() ])
-        mygrp = Group(self.quick_stats(), Rule('[black]At a glance'), grp, Rule('[black]Functions', style='red'), grp3 , Rule('[black]Imports', style='yellow'),
-                      grp2)
+        #remove \n from self.stat.return_founds()
+        return_founds = self.stat.return_founds()[0]
+        return_founds = return_founds.replace("\n", "")
+        return_founds = return_founds.replace(".", "")
+        with Status(f'[black]Ananlyzing code with {return_founds}[/], Selected files [green]{self.directory}[/]'):
+            imp_count = self.get_import_count()
 
-        return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None, style=self.get_random_colour())
+            grp = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
+
+            grp2 = Columns([imp_count[0],
+                        imp_count[1]], padding=(0, 1))
+            grp3 = Columns([self.get_func(), self.get_most_called_func()])
+            mygrp = Group(self.quick_stats(), Rule('[black]At a glance'), grp, Rule('[black]Functions', style='red'), grp3 , Rule('[black]Imports', style='yellow'),
+                        grp2)
+
+
+            return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None, style=self.get_random_colour())
 
 
 old_info = Stat(paths)
