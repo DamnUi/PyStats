@@ -48,6 +48,9 @@ if __name__ == "__main__":
     # Argument if to get how many variables
     parser.add_argument("--vars", help="Get how many variables are in the file")
 
+    # Argument to enable adhd mode
+    parser.add_argument("--adhd", help="Enable ADHD Mode", default=False)
+
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
@@ -301,7 +304,35 @@ class Stat:
                 most_called_func[key] = "[red]Defined Only[/]"
         return func_names, most_called_func
 
+    def get_classes(self):
+        class_names = {}
+        cur_line = 1
+        for file_path in self.directory:
+            with open(file_path, encoding="utf8") as open_file:
+                lines = [line.rstrip("\n") for line in open_file]
 
+                gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE | re.IGNORECASE)
+                
+                print(len(lines))
+                
+                for line in lines:
+                    line = line.strip()
+                    line = str(line)
+                    #could possibly also get the line where the class was defined
+                    if gex.match(line):
+                        class_name = gex.match(line).group(1)
+                        class_names[class_name] = [line, f"Defined on {cur_line}"] 
+                    cur_line += 1
+
+
+        return class_names
+        
+
+                
+
+
+        
+        
 # Really bad code form here! yayy
 
 
@@ -424,6 +455,7 @@ class VisualWrapper:
 
         return import_panel, from_import_panel
 
+    
     def get_most_called_func(self):
         func_names, most_called_func = self.stat.most_called_func()
         color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
@@ -440,9 +472,24 @@ class VisualWrapper:
         func_panel = Panel(renderable=func_md,
                            title="[black]Most Called Functions [red](one is subtracted becuase one time the function is definied)[/]",
                            title_align="left",
-                           border_style="blue")
+                           border_style="blue",
+                           width=90)
 
         return func_panel
+
+    def get_class(self):
+        color1, color2 = self.get_colors()
+        classes = self.stat.get_classes()
+        # add \n after each element except after last element
+        classes_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in classes.items()])
+        classes_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", classes_md)
+        class_md = f"""[pale_turquoise1]{classes_md}[/]"""
+        class_panel = Panel(renderable=class_md,
+                            title="[black]Classes",
+                            title_align="left",
+                            border_style="blue")
+
+        return class_panel
 
     def get_colors(self):
         color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
@@ -452,10 +499,10 @@ class VisualWrapper:
 
     def get_all(self):
         imp_count = self.get_import_count()
-        grp = Columns([self.get_line_count(), self.get_variable()])
+        grp = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
         grp2 = Columns([imp_count[0],
                         imp_count[1]], padding=(0, 1))
-        mygrp = Group(self.quick_stats(), Rule('[black]Stats'), grp, Rule('[black]Functions', style='red'), self.get_most_called_func(), Rule('[black]Functions', style='yellow'),
+        mygrp = Group(self.quick_stats(), Rule('[black]At a glance'), grp, Rule('[black]Functions', style='red'), self.get_most_called_func() , Rule('[black]Imports', style='yellow'),
                       grp2)
 
         return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None, style=self.get_random_colour())
@@ -463,6 +510,8 @@ class VisualWrapper:
 
 old_info = Stat(paths)
 info = VisualWrapper(paths)
+if args.adhd:
+    info = VisualWrapper(paths, adhd_mode=True, adhd_modev2=True)
 
 print(info.get_all())
 
