@@ -38,11 +38,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # if no arguments are passed, the default is set to the current directory
-    parser.add_argument("-df", help="Input Absolute Path to Directory or File")
+    parser.add_argument("-df", help="Input Absolute Path to Directory or one File")
 
     # df is directory or file it will kinda figure out itself assuming theirs only 2 files in
     # the dir and u do -neglect
-    parser.add_argument("-onefile", help="Input Absolute Path to File to Analyze")
     parser.add_argument("-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY")
 
     # Argument if to get how many variables
@@ -51,13 +50,16 @@ if __name__ == "__main__":
     # Argument to enable adhd mode
     parser.add_argument("--adhd", help="Enable ADHD Mode", default=False)
 
+    #Argument to get line in get_functions in Stat class
+    parser.add_argument("--getline", help="Get Help line in Functions (Disabled cause it makes it extremly big)", default=False)
+
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
 
     if args.vars is None:
         args.vars = False
-    if not any(vars(args).values()):
+    if args.df is None:
         # using different separators for windows and linux
         separator = "\\" if os_name == "nt" else "/"
 
@@ -75,8 +77,6 @@ if __name__ == "__main__":
         # Automatic mode
         print("Currently in Automatic mode this selects all files only in your current directory "
               "ending with py extension")
-    elif path.onefile:
-        paths = [path.onefile]
     else:
         # Determine if it's a directory or file
         if os.path.isdir(path.df):
@@ -306,28 +306,48 @@ class Stat:
 
     def get_classes(self):
         class_names = {}
-        cur_line = 1
         for file_path in self.directory:
+            cur_line = 1
             with open(file_path, encoding="utf8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
-
+                file =  open_file.name
                 gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE | re.IGNORECASE)
-                
-                print(len(lines))
-                
+            
                 for line in lines:
                     line = line.strip()
                     line = str(line)
                     #could possibly also get the line where the class was defined
                     if gex.match(line):
                         class_name = gex.match(line).group(1)
-                        class_names[class_name] = [line, f"Defined on {cur_line}"] 
+                        class_names[class_name] = [line, f"Defined on line: {cur_line}", f'and in file: {file}']
                     cur_line += 1
 
 
         return class_names
         
-
+    def get_func(self, display_line=args.getline):
+        #A full ripoff from the get_classes function with the only thing being changed is the regex
+        class_names = {}
+        for file_path in self.directory:
+            cur_line = 1
+            with open(file_path, encoding="utf8") as open_file:
+                lines = [line.rstrip("\n") for line in open_file]
+                file =  open_file.name
+                gex = re.compile(r"^\s*def\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE | re.IGNORECASE)
+    
+                for line in lines:
+                    line = line.strip()
+                    line = str(line)
+                    #could possibly also get the line where the class was defined
+                    if gex.match(line):
+                        class_name = gex.match(line).group(1)
+                        if display_line:
+                            class_names[class_name] = [line, f"Defined on line: {cur_line}", f'and in file: {file}'] 
+                        else:
+                            class_names[class_name] = [f"Defined on line: {cur_line}", f'and in file: {file}']
+                    cur_line += 1
+                    
+        return class_names
                 
 
 
@@ -490,6 +510,20 @@ class VisualWrapper:
                             border_style="blue")
 
         return class_panel
+    
+    def get_func(self):
+        color1, color2 = self.get_colors()
+        func = self.stat.get_func()
+        # add \n after each element except after last element
+        func_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in func.items()])
+        func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
+        func_md = f"""[pale_turquoise1]{func_md}[/]"""
+        func_panel = Panel(renderable=func_md,
+                           title="[black]Functions",
+                           title_align="left",
+                           border_style="blue")
+
+        return func_panel
 
     def get_colors(self):
         color1 = self.get_random_colour() if self.adhd_mode else 'grey63'
@@ -502,7 +536,8 @@ class VisualWrapper:
         grp = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
         grp2 = Columns([imp_count[0],
                         imp_count[1]], padding=(0, 1))
-        mygrp = Group(self.quick_stats(), Rule('[black]At a glance'), grp, Rule('[black]Functions', style='red'), self.get_most_called_func() , Rule('[black]Imports', style='yellow'),
+        grp3 = Columns([self.get_func(), self.get_most_called_func() ])
+        mygrp = Group(self.quick_stats(), Rule('[black]At a glance'), grp, Rule('[black]Functions', style='red'), grp3 , Rule('[black]Imports', style='yellow'),
                       grp2)
 
         return Panel(renderable=mygrp, title="[black]All Stats", title_align="center", width=None, style=self.get_random_colour())
@@ -511,7 +546,7 @@ class VisualWrapper:
 old_info = Stat(paths)
 info = VisualWrapper(paths)
 if args.adhd:
-    info = VisualWrapper(paths, adhd_mode=True, adhd_modev2=True)
+    info = VisualWrapper(paths, adhd_mode=True, extra_adhd=True)
 
 print(info.get_all())
 
