@@ -5,6 +5,10 @@ import re
 from collections import Counter
 
 
+def is_nested_list(input_list):
+    return any([isinstance(x, list) for x in input_list])
+
+
 def AND(cond1, cond2):
     return cond1 and cond2
 
@@ -22,7 +26,7 @@ def from_imports(input_file, get_assets=False):
         result = []
         with open(input_file, encoding='utf8') as input_file:
             for _code_line in input_file:
-                if re.match("^from\s\w+(?:.\w+)?\simport\s\w+(?:,\s\w+)*", _code_line):
+                if re.match(r"^from\s\w+(?:.\w+)?\simport\s\w+(?:,\s\w+)*", _code_line):
                     result.append(_code_line.strip())
 
         if not get_assets:
@@ -59,7 +63,7 @@ def import_imports(input_file):
     import_ = []
     with open(input_file, encoding='utf8') as input_file:
         for _code_line in input_file:
-            if re.match("^import\s\w+", _code_line):
+            if re.match(r"^import\s\w+", _code_line):
                 import_.append(_code_line.strip())
 
     return dict(Counter(import_))
