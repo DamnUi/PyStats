@@ -118,6 +118,7 @@ class Stat:
         self.directory_details = [f"[u][green]{len(self.directory)} file(s) found in {len(dir_)} "
                                   f"folders,[/][/]\n"]
 
+
     @property
     def return_directory_details(self):
         return self.directory_details
@@ -160,13 +161,30 @@ class Stat:
         variables_ = [line_
                       for file_ in self.directory
                       for line_ in open(file_, encoding="utf-8")
-                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)]
+                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)] #\s*\w+\s=\s maybe ?
 
         list_of_variables = [variables.strip()
                              if full_line_of_variable
                              else variables.split("=")[0].strip().replace("self.", "")
                              for variables in variables_
                              if variables]
+
+        #Remove dupelicates in list_ofvariables
+        list_of_variables = list(set(list_of_variables))
+        list_of_variables =  _utils.list_to_counter_dictionary(list_of_variables)
+        
+
+
+        for file_path in self.directory:
+            with open(file_path, encoding="utf-8") as file:
+                #Lines without \n
+                lines = [line.strip() for line in file.readlines()]
+                for varible in list_of_variables:
+                    rgex = fr"(self.)?\b(?=\w){varible}\b(?!\w)"
+                    for line in lines:
+                        if re.search(rgex, line, re.IGNORECASE):
+                            list_of_variables[varible] += 1
+
 
         return list_of_variables
 
@@ -324,12 +342,11 @@ class Stat:
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = line_, f"\n[red]In file[/] {file} &" \
+                                class_names[class_name] = line_, f"[red]In file[/] {file} &" \
                                                                  f"[red]defined[/] " \
                                                                  f"@ line # {cur_line}"
                             else:
-                                class_names[class_name] = f"\n[red]In file[/] {file} & " \
-                                                          f"[red]defined[/] @ line # {cur_line}"
+                                class_names[class_name] = f"[red]In file[/] {file} " f"[red]Defined[/] @ line {cur_line}"
                     cur_line += 1
 
         return class_names
@@ -392,6 +409,8 @@ class VisualWrapper:
 
     def get_variable(self, n_variables=3):
         n_variables = len(self.directory)
+        if int(n_variables) == 10:
+            n_variables = 1
         if args.vars:
             n_variables = int(args.vars)
             # Gets max number of variables assuming their not more than 100000 cloud implement a
