@@ -102,18 +102,21 @@ class Stat:
         if _utils.is_nested_list(directory):
             self.directory = [os.path.relpath(dir_)
                               for dir_ in list(itertools.chain.from_iterable(directory))]
-        else:
+        elif isinstance(directory, list):
             self.directory = [os.path.relpath(dir_) for dir_ in directory]
+        else:
+            self.directory = [directory]
 
-        self.directory.sort()
+        self.directory.sort() if isinstance(self.directory, list) else self.directory
 
         # if no file is present, break the program efficiently
         if not self.directory:
             raise _errors.NoFilePresent("No file present in given directory.")
         else:
             dir_ = [x for x in self.directory if "__init__" in x]
-            self.directory_details = [f"[u][green]{len(self.directory)} files found in {len(dir_)} "
-                                      f"folders,[/][/]\n"]
+
+        self.directory_details = [f"[u][green]{len(self.directory)} file(s) found in {len(dir_)} "
+                                  f"folders,[/][/]\n"]
 
     @property
     def return_directory_details(self):
@@ -358,8 +361,10 @@ class VisualWrapper:
 
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
-        else:
+        elif isinstance(self.directory, list):
             combined_directories = "\n".join([f'./{file_}' for file_ in self.directory])
+        else:
+            combined_directories = f'./{self.directory}'
 
         quick_md = f"""{founds}[gold1]{combined_directories}[/]"""
         quick = Panel(renderable=quick_md,
