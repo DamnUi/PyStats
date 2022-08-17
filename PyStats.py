@@ -262,7 +262,7 @@ class Stat:
 
                 func_names = [f"{func_name}"
                               for func_name in func_names
-                              if '__init__' not in func_name]
+                              if not func_name.endswith('__')]
 
                 for each in func_names:
                     matched_lines = re.findall(rf"(?:def\s)?{each}\(", ''.join(file_contents))
@@ -319,7 +319,7 @@ class Stat:
                     # could possibly also get the line where the class was defined
                     if gex.match(line_):
                         class_name = gex.match(line_).group(1)
-                        if class_name != '__init__':
+                        if not class_name.endswith('__'):
                             if display_line:
                                 class_names[class_name] = line_, f"\n[red]In file[/] {file} &" \
                                                                  f"[red]defined[/] " \
