@@ -116,7 +116,7 @@ class Stat:
             dir_ = [x for x in self.directory if "__init__" in x]
 
         self.directory_details = [f"[u][green]{len(self.directory)} file(s) found in {len(dir_)} "
-                                  f"folders,[/][/]\n"]
+                                  f"folders:[/][/]\n"]
 
 
     @property
@@ -379,10 +379,10 @@ class VisualWrapper:
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
         elif isinstance(self.directory, list):
-            combined_directories = "\n".join([f'./{file_}' for file_ in self.directory])
+            combined_directories = "\n".join([f'{file_}' for file_ in self.directory])
         else:
-            combined_directories = f'./{self.directory}'
-
+            combined_directories = f'{self.directory}'
+            
         quick_md = f"""{founds}[gold1]{combined_directories}[/]"""
         quick = Panel(renderable=quick_md,
                       title="[magenta][b]Files obtained[/]",
