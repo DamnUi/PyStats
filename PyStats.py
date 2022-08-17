@@ -49,7 +49,8 @@ if __name__ == "__main__":
 
     # Argument to get line in get_functions in Stat class
     parser.add_argument("--getline",
-                        help="Get Help line in Functions (Disabled cause it makes it extremely big)",
+                        help="Get Help line in Functions (Disabled cause it makes it extremely "
+                             "big)",
                         default=False)
 
     # Debug argument to print out the file names
@@ -303,30 +304,34 @@ class Stat:
         return class_names
 
     def get_func(self, display_line=args.getline):
-        #A full ripoff from the get_classes function with the only thing being changed is the regex
+        # A full ripoff from the get_classes function with the only thing being changed is the regex
         class_names = {}
         for file_path in self.directory:
             cur_line = 1
             with open(file_path, encoding="utf8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
-                file =  open_file.name
-                gex = re.compile(r"^\s*def\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE | re.IGNORECASE)
-    
-                for line in lines:
-                    line = line.strip()
-                    line = str(line)
-                    #could possibly also get the line where the class was defined
-                    if gex.match(line):
-                        class_name = gex.match(line).group(1)
-                        if display_line:
-                            class_names[class_name] = [line, f"Defined on line: {cur_line}", f'and in file: {file}'] 
-                        else:
-                            class_names[class_name] = [f"Defined on line: {cur_line}", f'and in file: {file}']
+                file = open_file.name
+                gex = re.compile(r"^\s*def\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE |
+                                 re.IGNORECASE)
+
+                for line_ in lines:
+                    line_ = str(line_.strip())
+                    # could possibly also get the line where the class was defined
+                    if gex.match(line_):
+                        class_name = gex.match(line_).group(1)
+                        if class_name != '__init__':
+                            if display_line:
+                                class_names[class_name] = line_, f"\n[red]In file[/] {file} &" \
+                                                                 f"[red]defined[/] " \
+                                                                 f"@ line # {cur_line}"
+                            else:
+                                class_names[class_name] = f"\n[red]In file[/] {file} & " \
+                                                          f"[red]defined[/] @ line # {cur_line}"
                     cur_line += 1
-                    
+
         return class_names
-    
-    
+
+
 class VisualWrapper:
     def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
         self.directory = directory
@@ -436,12 +441,12 @@ class VisualWrapper:
         import_panel = Panel(renderable=import_md,
                              title="[black]Count of 'import' statements",
                              title_align="left",
-                             border_style="blue",)
+                             border_style="blue", )
 
         from_import_panel = Panel(renderable=import_md_from,
                                   title="[black]Count of 'from' statements",
                                   title_align="left",
-                                  border_style="blue",)
+                                  border_style="blue", )
 
         return import_panel, from_import_panel
 
