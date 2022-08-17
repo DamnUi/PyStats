@@ -7,7 +7,6 @@ import re
 import sys
 
 from rich import print
-from rich.align import Align
 from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
@@ -113,7 +112,7 @@ class Stat:
         else:
             dir_ = [x for x in self.directory if "__init__" in x]
             self.directory_details = [f"[u][green]{len(self.directory)} files found in {len(dir_)} "
-                                      f"folders,[/][/]".center(100)]
+                                      f"folders,[/][/]\n"]
 
     @property
     def return_directory_details(self):
@@ -334,10 +333,9 @@ class VisualWrapper:
             combined_directories = "\n".join([f'./{file_}' for file_ in self.directory])
 
         quick_md = f"""{founds}[gold1]{combined_directories}[/]"""
-        quick = Align(renderable=Panel(renderable=quick_md,
-                                       title="[magenta][b]Files obtained[/]"),
-                      align="center",
-                      style="black")  # Can Change border style here by changing style
+        quick = Panel(renderable=quick_md,
+                      title="[magenta][b]Files obtained[/]",
+                      style='bright_blue')
 
         return quick
 
