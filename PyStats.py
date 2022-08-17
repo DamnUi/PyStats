@@ -302,7 +302,31 @@ class Stat:
 
         return class_names
 
-
+    def get_func(self, display_line=args.getline):
+        #A full ripoff from the get_classes function with the only thing being changed is the regex
+        class_names = {}
+        for file_path in self.directory:
+            cur_line = 1
+            with open(file_path, encoding="utf8") as open_file:
+                lines = [line.rstrip("\n") for line in open_file]
+                file =  open_file.name
+                gex = re.compile(r"^\s*def\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?", re.MULTILINE | re.IGNORECASE)
+    
+                for line in lines:
+                    line = line.strip()
+                    line = str(line)
+                    #could possibly also get the line where the class was defined
+                    if gex.match(line):
+                        class_name = gex.match(line).group(1)
+                        if display_line:
+                            class_names[class_name] = [line, f"Defined on line: {cur_line}", f'and in file: {file}'] 
+                        else:
+                            class_names[class_name] = [f"Defined on line: {cur_line}", f'and in file: {file}']
+                    cur_line += 1
+                    
+        return class_names
+    
+    
 class VisualWrapper:
     def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
         self.directory = directory
@@ -412,14 +436,12 @@ class VisualWrapper:
         import_panel = Panel(renderable=import_md,
                              title="[black]Count of 'import' statements",
                              title_align="left",
-                             border_style="blue",
-                             height=learn)
+                             border_style="blue",)
 
         from_import_panel = Panel(renderable=import_md_from,
                                   title="[black]Count of 'from' statements",
                                   title_align="left",
-                                  border_style="blue",
-                                  height=learn)
+                                  border_style="blue",)
 
         return import_panel, from_import_panel
 
@@ -457,7 +479,7 @@ class VisualWrapper:
 
     def get_func(self):
         color1, color2 = self.get_colors()
-        _, func = self.stat.most_called_func()
+        func = self.stat.get_func()
         # add \n after each element except after last element
         func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                              for key, value in func.items()])
