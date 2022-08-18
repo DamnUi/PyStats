@@ -296,9 +296,7 @@ class Stat:
                                    reverse=True)}
 
         # if frequency is 0 then replace it with text 'Only Defined'
-        for key, value in most_called_func.items():
-            if value == 0:
-                most_called_func[key] = "[red]Defined Only[/]"
+        
 
         return func_names, most_called_func
 
@@ -324,9 +322,14 @@ class Stat:
 
         return class_names
 
-    def get_func(self, display_line=args.getline):
+    def get_func(self, display_line=args.getline, get=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
+        times_used = self.most_called_func()
+        func_names = times_used[0]
+        most_called_func = times_used[1]
+
         class_names = {}
+        special_get = {}
         for file_path in self.directory:
             cur_line = 1
             with open(file_path, encoding="utf8") as open_file:
@@ -337,6 +340,7 @@ class Stat:
 
                 for line_ in lines:
                     line_ = str(line_.strip())
+                    
                     # could possibly also get the line where the class was defined
                     if gex.match(line_):
                         class_name = gex.match(line_).group(1)
@@ -346,9 +350,17 @@ class Stat:
                                                                  f"[red]defined[/] " \
                                                                  f"@ line # {cur_line}"
                             else:
-                                class_names[class_name] = f"[red]In file[/] {file} " f"[red]Defined[/] @ line {cur_line}"
+                                class_names[class_name] = f"[red]In file[/] {file} " f"[red]Defined[/] @ line {cur_line}, Times used: {most_called_func[class_name]}"
+                                #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
+                                class_names = {key: value
+                                                  for key, value in
+                                                    sorted(class_names.items(), key=lambda item: item[1][-1],
+                                                              reverse=True)}                       
+         
                     cur_line += 1
-
+        
+        
+        
         return class_names
 
 
@@ -474,23 +486,23 @@ class VisualWrapper:
 
         return import_panel, from_import_panel
 
-    def get_most_called_func(self):
-        color1, color2 = self.get_colors()
+    # def get_most_called_func(self):
+    #     color1, color2 = self.get_colors()
 
-        func_names, most_called_func = self.stat.most_called_func()
+    #     func_names, most_called_func = self.stat.most_called_func()
 
-        func_names_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
-                                   for key, value in most_called_func.items()])
+    #     func_names_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+    #                                for key, value in most_called_func.items()])
 
-        func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
+    #     func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
 
-        func_names_md = f"""[pale_turquoise1]{func_names_md}[/]"""
-        func_panel = Panel(renderable=func_names_md,
-                           title="[black]Most Called Functions [red][/]",
-                           title_align="left",
-                           border_style="blue")
+    #     func_names_md = f"""[pale_turquoise1]{func_names_md}[/]"""
+    #     func_panel = Panel(renderable=func_names_md,
+    #                        title="[black]Most Called Functions [red][/]",
+    #                        title_align="left",
+    #                        border_style="blue")
 
-        return func_panel
+    #    return func_panel
 
     def get_class(self):
         color1, color2 = self.get_colors()
@@ -538,7 +550,7 @@ class VisualWrapper:
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
 
-            group3 = Columns([self.get_func(), self.get_most_called_func()])
+            group3 = Columns([self.get_func()]) #The colours used for this need to change
 
             groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1,
                            Rule('[black]Functions', style='red'), group3,
