@@ -5,8 +5,6 @@ import os
 import random
 import re
 import sys
-from turtle import title
-from webbrowser import get
 
 from rich import print
 from rich.columns import Columns
@@ -271,7 +269,6 @@ class Stat:
                                              "or 'all'.")
 
     def most_called_func(self):
-
         most_called_func = {}
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
@@ -328,7 +325,6 @@ class Stat:
         # A full ripoff from the get_classes function with the only thing being changed is the regex
         times_used = self.most_called_func() #Only 
         most_called_func = times_used[1]
-        num = 0
         class_names = {}
         for file_path in self.directory:
             cur_line = 1
@@ -352,7 +348,7 @@ class Stat:
                                                     sorted(class_names.items(), key=lambda item: item[1][-1],
                                                               reverse=True)}  
                             else:
-                                class_names[class_name] = ["This is useless dont use 0", f'[cyan]{class_name}:[/]', f"[light_goldenrod1]In file:[/] {file} ", f"[light_goldenrod1]Defined @ line:[/] {cur_line}", f"[light_goldenrod1]Times used:[/] {most_called_func[class_name]}"]
+                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"[light_goldenrod1]In file:[/] {file} ", f"[light_goldenrod1]Defined @ line:[/] {cur_line}", f"[light_goldenrod1]Times used:[/] {most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = {key: value
                                                   for key, value in
@@ -380,10 +376,6 @@ class VisualWrapper:
         self.stat = Stat(self.directory)
         self.adhd_mode = adhd_mode
         self.adhd_modev2 = extra_adhd
-
-    @staticmethod
-    def panel_print(object_to_render, border_style):
-        return Panel(renderable=object_to_render, border_style=border_style)
 
     @staticmethod
     def get_random_color():
