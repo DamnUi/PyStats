@@ -5,6 +5,7 @@ import os
 import random
 import re
 import sys
+from turtle import title
 from webbrowser import get
 
 from rich import print
@@ -345,15 +346,13 @@ class Stat:
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = line_, f"[red]In file[/] {file} &" \
-                                                                 f"[red]defined[/] " \
-                                                                 f"@ line # {cur_line}"
+                                class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
                                 class_names = {key: value
                                                   for key, value in
                                                     sorted(class_names.items(), key=lambda item: item[1][-1],
                                                               reverse=True)}  
                             else:
-                                class_names[class_name] = ["This is useless dont use 0", f'[cyan]{class_name}:[/]', f"[red]In file[/] {file} ", f"[red]Defined[/] @ line {cur_line}", f"[yellow]Times used[/]: {most_called_func[class_name]}"]
+                                class_names[class_name] = ["This is useless dont use 0", f'[cyan]{class_name}:[/]', f"[light_goldenrod1]In file:[/] {file} ", f"[light_goldenrod1]Defined @ line:[/] {cur_line}", f"[light_goldenrod1]Times used:[/] {most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = {key: value
                                                   for key, value in
@@ -391,7 +390,6 @@ class VisualWrapper:
         good_colours = ["medium_spring_green",
                         "spring_green4",
                         "slate_blue1",
-                        "indian_red",
                         "gold1",
                         "medium_purple2"]
         return random.choice(good_colours)
@@ -541,8 +539,16 @@ class VisualWrapper:
         except Exception as e: 
             #remove brackets and ' from list
             func = ('\n'.join(func)) #A FUCKING 2 HRS ON THIS ONE LINE IM GONNA DIE ONE DAY CODING PYTHON
+            if get_ == 1:
+                title = '[black]Function'
+            elif get_ == 2:
+                title = '[black]File'
+            elif get_ == 3:
+                title = '[black]Defined on'
+            else:
+                title = '[black]Used'
             func_panel = Panel(renderable=func,
-                title="[black]Functions",
+                title=title,
                 title_align="left",
                 border_style="blue")
             return func_panel
