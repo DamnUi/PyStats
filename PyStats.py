@@ -5,6 +5,7 @@ import os
 import random
 import re
 import sys
+from webbrowser import get
 
 from rich import print
 from rich.columns import Columns
@@ -322,14 +323,12 @@ class Stat:
 
         return class_names
 
-    def get_func(self, display_line=args.getline, get=None):
+    def get_func(self, display_line=args.getline, get_=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
-        times_used = self.most_called_func()
-        func_names = times_used[0]
+        times_used = self.most_called_func() #Only 
         most_called_func = times_used[1]
-
+        num = 0
         class_names = {}
-        special_get = {}
         for file_path in self.directory:
             cur_line = 1
             with open(file_path, encoding="utf8") as open_file:
@@ -349,19 +348,31 @@ class Stat:
                                 class_names[class_name] = line_, f"[red]In file[/] {file} &" \
                                                                  f"[red]defined[/] " \
                                                                  f"@ line # {cur_line}"
+                                class_names = {key: value
+                                                  for key, value in
+                                                    sorted(class_names.items(), key=lambda item: item[1][-1],
+                                                              reverse=True)}  
                             else:
-                                class_names[class_name] = f"[red]In file[/] {file} " f"[red]Defined[/] @ line {cur_line}, Times used: {most_called_func[class_name]}"
+                                class_names[class_name] = ["This is useless dont use 0", f'[cyan]{class_name}:[/]', f"[red]In file[/] {file} ", f"[red]Defined[/] @ line {cur_line}", f"[yellow]Times used[/]: {most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = {key: value
                                                   for key, value in
                                                     sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True)}                       
-         
+                                                              reverse=True)}    
+
+
+                                
+                                
                     cur_line += 1
-        
-        
+        if get_:
+            req_class_names = []
+            for idk in list(class_names.items()):
+                # req_class_names.append(idk[0][get_])
+                req_class_names.append(idk[1][get_])
+            return req_class_names
         
         return class_names
+    
 
 
 class VisualWrapper:
@@ -518,14 +529,25 @@ class VisualWrapper:
 
         return class_panel
 
-    def get_func(self):
+    def get_func(self, get_=None):
         color1, color2 = self.get_colors()
-        func = self.stat.get_func()
+        func = self.stat.get_func(get_=get_)
+        num = 0
         # add \n after each element except after last element
-        func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
-                             for key, value in func.items()])
-        func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
-        func_md = f"""[pale_turquoise1]{func_md}[/]"""
+        try:
+            func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
+            func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
+            func_md = f"""[pale_turquoise1]{func_md}[/]"""
+        except Exception as e: 
+            #remove brackets and ' from list
+            func = ('\n'.join(func)) #A FUCKING 2 HRS ON THIS ONE LINE IM GONNA DIE ONE DAY CODING PYTHON
+            func_panel = Panel(renderable=func,
+                title="[black]Functions",
+                title_align="left",
+                border_style="blue")
+            return func_panel
+            
+            
         func_panel = Panel(renderable=func_md,
                            title="[black]Functions",
                            title_align="left",
@@ -549,8 +571,8 @@ class VisualWrapper:
             group1 = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
-
-            group3 = Columns([self.get_func()]) #The colours used for this need to change
+            
+            group3 = Columns([self.get_func(1), self.get_func(2), self.get_func(3), self.get_func(4)]) #The colours used for this need to change
 
             groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1,
                            Rule('[black]Functions', style='red'), group3,
@@ -564,7 +586,7 @@ class VisualWrapper:
 old_info = Stat(working_path)
 info = VisualWrapper(working_path)
 if args.adhd:
-    info = VisualWrapper(working_path, adhd_mode=True, extra_adhd=True)
+    info = VisualWrapper(working_path)
 
 print(info.get_all())
 # test
