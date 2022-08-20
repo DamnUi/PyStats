@@ -348,7 +348,7 @@ class Stat:
                                                     sorted(class_names.items(), key=lambda item: item[1][-1],
                                                               reverse=True)}  
                             else:
-                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"[light_goldenrod1]In file:[/] {file} ", f"[light_goldenrod1]Defined @ line:[/] {cur_line}", f"[light_goldenrod1]Times used:[/] {most_called_func[class_name]}"]
+                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = {key: value
                                                   for key, value in
@@ -530,19 +530,26 @@ class VisualWrapper:
             func_md = f"""[pale_turquoise1]{func_md}[/]"""
         except Exception as e: 
             #remove brackets and ' from list
+            old_func = func
             func = ('\n'.join(func)) #A FUCKING 2 HRS ON THIS ONE LINE IM GONNA DIE ONE DAY CODING PYTHON
+            print(old_func)
             if get_ == 1:
-                title = '[black]Function'
+                title = '[black]Function' 
+                width = len(max(old_func))
             elif get_ == 2:
-                title = '[black]File'
+                title = '[black]In File'
+                width = len(max(old_func))+4
             elif get_ == 3:
-                title = '[black]Defined on'
+                title = '[black]Line'
+                width = len(max(old_func))*10
             else:
-                title = '[black]Used'
+                title = '[black]Times Used'
+                width = len(max(old_func))*10
             func_panel = Panel(renderable=func,
                 title=title,
                 title_align="left",
-                border_style="blue")
+                border_style="blue",
+                width=width)
             return func_panel
             
             
@@ -570,7 +577,7 @@ class VisualWrapper:
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
             
-            group3 = Columns([self.get_func(1), self.get_func(2), self.get_func(3), self.get_func(4)]) #The colours used for this need to change
+            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2) ]) #The colours used for this need to change
 
             groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1,
                            Rule('[black]Functions', style='red'), group3,
