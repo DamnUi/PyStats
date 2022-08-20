@@ -367,7 +367,7 @@ class Stat:
             return req_class_names
         
         return class_names
-    
+
 
 
 class VisualWrapper:
@@ -532,7 +532,6 @@ class VisualWrapper:
             #remove brackets and ' from list
             old_func = func
             func = ('\n'.join(func)) #A FUCKING 2 HRS ON THIS ONE LINE IM GONNA DIE ONE DAY CODING PYTHON
-            print(old_func)
             if get_ == 1:
                 title = '[black]Function' 
                 width = len(max(old_func))
