@@ -316,7 +316,7 @@ class Stat:
                     if gex.match(line):
                         class_name = gex.match(line).group(1)
                         class_names[class_name] = [line, f"Defined on line: {cur_line}",
-                                                   f'and in file: {file}']
+                                                   f'in file: {file}']
                     cur_line += 1
 
         return class_names
