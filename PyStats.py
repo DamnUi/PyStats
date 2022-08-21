@@ -5,6 +5,8 @@ import os
 import random
 import re
 import sys
+import ast
+
 
 from rich import print
 from rich.columns import Columns
@@ -99,6 +101,7 @@ class Stat:
     def __init__(self, directory) -> None:
         # this is to accommodate projects with multiple directories as well as those with
         # multiple files in a single directory
+        self.old_dir = directory
         if _utils.is_nested_list(directory):
             self.directory = [os.path.relpath(dir_)
                               for dir_ in list(itertools.chain.from_iterable(directory))]
@@ -269,7 +272,6 @@ class Stat:
                                              "or 'all'.")
 
     def most_called_func(self):
-
         most_called_func = {}
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
@@ -301,35 +303,43 @@ class Stat:
         return func_names, most_called_func
 
     def get_classes(self):
-        class_names = {}
+        class_names = {}            
         for file_path in self.directory:
             cur_line = 1
-            with open(file_path, encoding="utf8") as open_file:
+            ls = []
+            with open(file_path, encoding="utf-8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
                 file = open_file.name
                 gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?",
                                  re.MULTILINE | re.IGNORECASE)
 
-                for line in lines:
-                    line = line.strip()
-                    line = str(line)
-                    # could possibly also get the line where the class was defined
-                    if gex.match(line):
-                        class_name = gex.match(line).group(1)
-                        class_names[class_name] = [line, f"Defined on line: {cur_line}",
-                                                   f'and in file: {file}']
-                    cur_line += 1
+            
+            with open(file_path, encoding='utf-8') as fml:
+                code = fml.read()
+                node = ast.parse(code)
+                for indx, obj in enumerate(list(node.body)):
+                    if '<ast.ClassDef' in str(obj):
+                        ls.append(len(obj.body))
+            
+            for line in lines:
+                line = line.strip()
+                line = str(line)
+                # could possibly also get the line where the class was defined
+                if gex.match(line):
+                    class_name = gex.match(line).group(1)
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[0]} Functions']
+                
+                cur_line += 1
+
+
 
         return class_names
 
-    def get_func(self, display_line=args.getline, get=None):
+    def get_func(self, display_line=args.getline, get_=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
-        times_used = self.most_called_func()
-        func_names = times_used[0]
+        times_used = self.most_called_func() #Only 
         most_called_func = times_used[1]
-
         class_names = {}
-        special_get = {}
         for file_path in self.directory:
             cur_line = 1
             with open(file_path, encoding="utf8") as open_file:
@@ -346,22 +356,32 @@ class Stat:
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = line_, f"[red]In file[/] {file} &" \
-                                                                 f"[red]defined[/] " \
-                                                                 f"@ line # {cur_line}"
+                                class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
+                                class_names = {key: value
+                                                  for key, value in
+                                                    sorted(class_names.items(), key=lambda item: item[1][-1],
+                                                              reverse=True)}  
                             else:
-                                class_names[class_name] = f"[red]In file[/] {file} " f"[red]Defined[/] @ line {cur_line}, Times used: {most_called_func[class_name]}"
+                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = {key: value
                                                   for key, value in
                                                     sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True)}                       
-         
+                                                              reverse=True)}    
+
+
+                                
+                                
                     cur_line += 1
-        
-        
+        if get_:
+            req_class_names = []
+            for idk in list(class_names.items()):
+                # req_class_names.append(idk[0][get_])
+                req_class_names.append(idk[1][get_])
+            return req_class_names
         
         return class_names
+
 
 
 class VisualWrapper:
@@ -372,15 +392,10 @@ class VisualWrapper:
         self.adhd_modev2 = extra_adhd
 
     @staticmethod
-    def panel_print(object_to_render, border_style):
-        return Panel(renderable=object_to_render, border_style=border_style)
-
-    @staticmethod
     def get_random_color():
         good_colours = ["medium_spring_green",
                         "spring_green4",
                         "slate_blue1",
-                        "indian_red",
                         "gold1",
                         "medium_purple2"]
         return random.choice(good_colours)
@@ -518,14 +533,39 @@ class VisualWrapper:
 
         return class_panel
 
-    def get_func(self):
+    def get_func(self, get_=None):
         color1, color2 = self.get_colors()
-        func = self.stat.get_func()
+        func = self.stat.get_func(get_=get_)
+        num = 0
         # add \n after each element except after last element
-        func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
-                             for key, value in func.items()])
-        func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
-        func_md = f"""[pale_turquoise1]{func_md}[/]"""
+        try:
+            func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
+            func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
+            func_md = f"""[pale_turquoise1]{func_md}[/]"""
+        except Exception as e: 
+            #remove brackets and ' from list
+            old_func = func
+            func = ('\n'.join(func))
+            if get_ == 1:
+                title = '[black]Function' 
+                width = len(max(old_func))
+            elif get_ == 2:
+                title = '[black]In File'
+                width = len(max(old_func))+4
+            elif get_ == 3:
+                title = '[black]Line'
+                width = len(max(old_func))*10
+            else:
+                title = '[black]Times Used'
+                width = len(max(old_func))*10
+            func_panel = Panel(renderable=func,
+                title=title,
+                title_align="left",
+                border_style="blue",
+                width=width)
+            return func_panel
+            
+            
         func_panel = Panel(renderable=func_md,
                            title="[black]Functions",
                            title_align="left",
@@ -539,7 +579,7 @@ class VisualWrapper:
 
         return color1, color2
 
-    def get_all(self):
+    def get_all(self, gui=True):
         # remove \n from self.stat.return_directory_details()
         return_founds = self.stat.return_directory_details
         with Status(f'[black]Analyzing code with {return_founds[0]}[/], '
@@ -549,22 +589,22 @@ class VisualWrapper:
             group1 = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
-
-            group3 = Columns([self.get_func()]) #The colours used for this need to change
+            
+            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2) ]) #The colours used for this need to change
 
             groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1,
                            Rule('[black]Functions', style='red'), group3,
                            Rule('[black]Imports', style='yellow'),
                            group2)
-
-            return Panel(renderable=groups, title="[black]All Stats", title_align="center",
-                         width=None, style=self.get_random_color())
+            if gui:
+                return Panel(renderable=groups, title="[black]All Stats", title_align="center",
+                            width=None, style=self.get_random_color())
 
 
 old_info = Stat(working_path)
 info = VisualWrapper(working_path)
 if args.adhd:
-    info = VisualWrapper(working_path, adhd_mode=True, extra_adhd=True)
+    info = VisualWrapper(working_path)
 
-print(info.get_all())
+print(info.get_all(True))
 # test
