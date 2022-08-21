@@ -327,7 +327,7 @@ class Stat:
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
-                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Functions {ls[0]}']
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[0]} Functions']
                 
                 cur_line += 1
 
