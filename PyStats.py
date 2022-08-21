@@ -5,6 +5,8 @@ import os
 import random
 import re
 import sys
+import ast
+
 
 from rich import print
 from rich.columns import Columns
@@ -99,6 +101,7 @@ class Stat:
     def __init__(self, directory) -> None:
         # this is to accommodate projects with multiple directories as well as those with
         # multiple files in a single directory
+        self.old_dir = directory
         if _utils.is_nested_list(directory):
             self.directory = [os.path.relpath(dir_)
                               for dir_ in list(itertools.chain.from_iterable(directory))]
@@ -300,24 +303,35 @@ class Stat:
         return func_names, most_called_func
 
     def get_classes(self):
-        class_names = {}
+        class_names = {}            
         for file_path in self.directory:
             cur_line = 1
-            with open(file_path, encoding="utf8") as open_file:
+            ls = []
+            with open(file_path, encoding="utf-8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
                 file = open_file.name
                 gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?",
                                  re.MULTILINE | re.IGNORECASE)
 
-                for line in lines:
-                    line = line.strip()
-                    line = str(line)
-                    # could possibly also get the line where the class was defined
-                    if gex.match(line):
-                        class_name = gex.match(line).group(1)
-                        class_names[class_name] = [line, f"Defined on line: {cur_line}",
-                                                   f'in file: {file}']
-                    cur_line += 1
+            
+            with open(file_path, encoding='utf-8') as fml:
+                code = fml.read()
+                node = ast.parse(code)
+                for indx, obj in enumerate(list(node.body)):
+                    if '<ast.ClassDef' in str(obj):
+                        ls.append(len(obj.body))
+            
+            for line in lines:
+                line = line.strip()
+                line = str(line)
+                # could possibly also get the line where the class was defined
+                if gex.match(line):
+                    class_name = gex.match(line).group(1)
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Functions {ls[0]}']
+                
+                cur_line += 1
+
+
 
         return class_names
 
@@ -531,7 +545,7 @@ class VisualWrapper:
         except Exception as e: 
             #remove brackets and ' from list
             old_func = func
-            func = ('\n'.join(func)) #A FUCKING 2 HRS ON THIS ONE LINE IM GONNA DIE ONE DAY CODING PYTHON
+            func = ('\n'.join(func))
             if get_ == 1:
                 title = '[black]Function' 
                 width = len(max(old_func))
@@ -565,7 +579,7 @@ class VisualWrapper:
 
         return color1, color2
 
-    def get_all(self):
+    def get_all(self, gui=True):
         # remove \n from self.stat.return_directory_details()
         return_founds = self.stat.return_directory_details
         with Status(f'[black]Analyzing code with {return_founds[0]}[/], '
@@ -582,9 +596,9 @@ class VisualWrapper:
                            Rule('[black]Functions', style='red'), group3,
                            Rule('[black]Imports', style='yellow'),
                            group2)
-
-            return Panel(renderable=groups, title="[black]All Stats", title_align="center",
-                         width=None, style=self.get_random_color())
+            if gui:
+                return Panel(renderable=groups, title="[black]All Stats", title_align="center",
+                            width=None, style=self.get_random_color())
 
 
 old_info = Stat(working_path)
@@ -592,5 +606,5 @@ info = VisualWrapper(working_path)
 if args.adhd:
     info = VisualWrapper(working_path)
 
-print(info.get_all())
+print(info.get_all(True))
 # test
