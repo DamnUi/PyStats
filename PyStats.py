@@ -16,6 +16,7 @@ from rich.rule import Rule
 from rich.status import Status
 from rich.traceback import install as install_traceback
 
+
 import errors as _errors
 import utilities as _utils
 
@@ -318,7 +319,7 @@ class Stat:
                 code = fml.read()
                 node = ast.parse(code)
                 for indx, obj in enumerate(list(node.body)):
-                    if '<ast.ClassDef' in str(obj):
+                    if isinstance(obj, ast.ClassDef):
                         ls.append(len(obj.body))
             
             for line in lines:
@@ -381,6 +382,42 @@ class Stat:
             return req_class_names
         
         return class_names
+    
+    def get_if_while_for_with_etc(self):
+        if_list = []
+        while_list = []
+        for_or_aysyncfor_list = []
+        with_list = []
+        try_list = []
+        for file_path in self.directory:
+            with open(file_path, encoding="utf8") as open_file:
+                code = open_file.read()
+
+                node = ast.parse(code)
+                for thing in ast.walk(node=node):
+                    if isinstance(thing, ast.If):
+                        if_list.append(thing)
+                        #file path  
+                        #if_list.append(file_path)
+                    if isinstance(thing, ast.While):
+                        while_list.append(thing)
+                        #while_list.append(file_path)
+                    if isinstance(thing, ast.For):
+                        for_or_aysyncfor_list.append(thing)
+                        #for_or_aysyncfor_list.append(file_path)
+                    if isinstance(thing, ast.AsyncFor):
+                        for_or_aysyncfor_list.append(thing)
+                        #for_or_aysyncfor_list.append(file_path)
+                    if isinstance(thing, ast.With):
+                        with_list.append(thing)
+                        #with_list.append(file_path)
+                    #try statments
+                    if isinstance(thing, ast.Try):
+                        try_list.append(thing)
+                        #try_list.append(file_path)
+
+                        
+        return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list)
 
 
 
@@ -430,7 +467,8 @@ class VisualWrapper:
         line_count_panel = Panel(renderable=line_count_md,
                                  title="[black]Line Count",
                                  title_align="left",
-                                 border_style="blue")
+                                 border_style="blue",
+                                 width=30)
 
         return line_count_panel
 
@@ -470,6 +508,7 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
         imports = self.stat.import_count()
 
+        
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
@@ -486,6 +525,18 @@ class VisualWrapper:
                                      for key, value in imports_from.items()])
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
         import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
+
+        #Get the smaller of the two
+        if len_import_imports < len_from_imports:
+            difference = len_from_imports - len_import_imports
+            for i in range(difference):
+                import_md += "\n"
+        else:
+            difference = len_import_imports - len_from_imports
+            #Add the difference as lines to the import_md
+            for i in range(difference):
+                import_md_from += "\n"
+                
 
         learn = len_from_imports if len_import_imports < len_from_imports else len_import_imports
 
@@ -573,6 +624,27 @@ class VisualWrapper:
 
         return func_panel
 
+    def get_statments(self):
+        from rich.syntax import Syntax
+        color1, color2 = self.get_colors()
+        statements = self.stat.get_if_while_for_with_etc()
+        
+    
+        statements_md = f"if: {statements[0]}\n\while {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}"
+
+
+    
+
+        #Im not sure how i can colour them
+
+
+ 
+
+
+        statements_panel = Panel(renderable=statements_md,  title="[black]Total Statements  (In all files)", title_align="left", border_style="blue", height=len(statements) + 2, width=40)
+        return statements_panel
+
+
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
@@ -586,15 +658,15 @@ class VisualWrapper:
                     f'Selected files [green]{self.directory}[/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_class()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
             
-            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2) ]) #The colours used for this need to change
+            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2)]) #The colours used for this need to change
 
-            groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1,
-                           Rule('[black]Functions', style='red'), group3,
-                           Rule('[black]Imports', style='yellow'),
+            groups = Group(self.quick_stats(),Rule('[black]At a glance'), group1, self.get_class(),
+                           Rule('[black]Functions', style='yellow'), group3,
+                           Rule('[black]Imports (from count is not working currently)', style='red'),
                            group2)
             if gui:
                 return Panel(renderable=groups, title="[black]All Stats", title_align="center",
@@ -606,5 +678,5 @@ info = VisualWrapper(working_path)
 if args.adhd:
     info = VisualWrapper(working_path)
 
-print(info.get_all(True))
+print(info.get_all())
 # test
