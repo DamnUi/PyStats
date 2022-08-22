@@ -1,4 +1,4 @@
-<p align="center">![PyStas](https://user-images.githubusercontent.com/81849260/185844412-8a732ad8-0fd1-459c-98ba-d4eeff23151e.png)
+![PyStas](https://user-images.githubusercontent.com/81849260/185844412-8a732ad8-0fd1-459c-98ba-d4eeff23151e.png)
 <!-- 
  <img src="https://github.com/DamnUi/PyStats/blob/main/PyStas.png" align="middle" width = "900"/>
 <p align="center"> -->
