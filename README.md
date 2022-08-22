@@ -1,5 +1,5 @@
 <p align="center">
- <img src="https://github.com/DamnUi/PyStats/blob/main/PyStas.png" align="middle" width = "900" height = "300"/>
+ <img src="https://github.com/DamnUi/PyStats/blob/main/PyStas.png" align="middle" width = "900" height = "500"/>
 <p align="center">
 
 ## Intro
