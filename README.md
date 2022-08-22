@@ -1,6 +1,7 @@
-<p align="center">
+<p align="center">![PyStas](https://user-images.githubusercontent.com/81849260/185844412-8a732ad8-0fd1-459c-98ba-d4eeff23151e.png)
+<!-- 
  <img src="https://github.com/DamnUi/PyStats/blob/main/PyStas.png" align="middle" width = "900"/>
-<p align="center">
+<p align="center"> -->
 
 ## Intro
 PyStats scrapes your Python files for any data it can find and presents it intuitively.
