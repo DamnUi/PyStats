@@ -18,4 +18,4 @@ pip install PyStat?
 ![carbon](https://user-images.githubusercontent.com/81849260/185844371-d31146a5-27eb-40d6-a433-d7ae034bb3f5.png)
 
 
-Special Thanks to (Astro)[https://github.com/AstrophysicsAndPython]
+Special Thanks to [Astro](https://github.com/AstrophysicsAndPython)
