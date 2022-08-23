@@ -389,6 +389,7 @@ class Stat:
         for_or_aysyncfor_list = []
         with_list = []
         try_list = []
+        varibles = []
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
                 code = open_file.read()
@@ -415,9 +416,11 @@ class Stat:
                     if isinstance(thing, ast.Try):
                         try_list.append(thing)
                         #try_list.append(file_path)
-
+                    if isinstance(thing, ast.Assign):
+                        varibles.append(thing)
+                    
                         
-        return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list)
+        return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
 
 
 
@@ -594,30 +597,35 @@ class VisualWrapper:
             func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
             func_md = f"""[pale_turquoise1]{func_md}[/]"""
         except Exception as e: 
+            try:
             #remove brackets and ' from list
-            old_func = func
-            func = ('\n'.join(func))
-            if get_ == 1:
-                title = '[black]Function' 
-                width = len(max(old_func))
-            elif get_ == 2:
-                title = '[black]In File'
-                width = len(max(old_func))+4
-            elif get_ == 3:
-                title = '[black]Line'
-                width = len(max(old_func))*10
-            else:
-                title = '[black]Times Used'
-                width = len(max(old_func))*10
-            func_panel = Panel(renderable=func,
-                title=title,
-                title_align="left",
-                border_style="blue",
-                width=width)
-            return func_panel
+                old_func = func
+                func = ('\n'.join(func))
+                if get_ == 1:
+                    title = '[black]Function' 
+                    width = len(max(old_func))
+                elif get_ == 2:
+                    title = '[black]In File'
+                    width = len(max(old_func))+4
+                elif get_ == 3:
+                    title = '[black]Line'
+                    width = len(max(old_func))*10
+                else:
+                    title = '[black]Times Used'
+                    width = len(max(old_func))*10
+                func_panel = Panel(renderable=func,
+                    title=title,
+                    title_align="left",
+                    border_style="blue",
+                    width=width)
+                return func_panel
+            except Exception as e:
+                print(e)
+                pass
+
             
             
-        func_panel = Panel(renderable=func_md,
+        func_panel = Panel(renderable=func,
                            title="[black]Functions",
                            title_align="left",
                            border_style="blue")
@@ -630,16 +638,7 @@ class VisualWrapper:
         statements = self.stat.get_if_while_for_with_etc()
         
     
-        statements_md = f"if: {statements[0]}\n\while {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}"
-
-
-    
-
-        #Im not sure how i can colour them
-
-
- 
-
+        statements_md = f"if: {statements[0]}\nwhile {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}\nTotal Variables: {statements[5]}"
 
         statements_panel = Panel(renderable=statements_md,  title="[black]Total Statements  (In all files)", title_align="left", border_style="blue", height=len(statements) + 2, width=40)
         return statements_panel
