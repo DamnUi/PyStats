@@ -653,8 +653,7 @@ class VisualWrapper:
     def get_all(self, gui=True):
         # remove \n from self.stat.return_directory_details()
         return_founds = self.stat.return_directory_details
-        with Status(f'[black]Analyzing code with {return_founds[0]}[/], '
-                    f'Selected files [green]{self.directory}[/]'):
+        with Status(f'[black]Analyzing code with {return_founds[0]}[/] With files [green]{self.directory}[/]'):
             imp_count = self.get_import_count()
 
             group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments()])
