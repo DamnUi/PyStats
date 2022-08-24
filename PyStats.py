@@ -242,6 +242,8 @@ class Stat:
 
 
 
+
+
         if n_variables is not None:
             return {key: value for key, value in list(most_used_variable.items())[:n_variables]}
         else:
@@ -511,6 +513,8 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
 
         variables = self.stat.most_used_variable(n_variables)
+        
+        
         if n_variables is None:
             start = "Frequency of variables used"
         else:
@@ -659,7 +663,7 @@ class VisualWrapper:
         statements = self.stat.get_if_while_for_with_etc()
         
     
-        statements_md = f"if: {statements[0]}\nwhile {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}\nTotal Variables: {statements[5]}"
+        statements_md = f"if: {statements[0]}\nwhile {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}\nTotal Variables defined: {statements[5]}"
 
         statements_panel = Panel(renderable=statements_md,  title="[black]Total Statements  (In all files)", title_align="left", border_style="blue", height=len(statements) + 2, width=40)
         return statements_panel
