@@ -661,13 +661,20 @@ class VisualWrapper:
         from rich.syntax import Syntax
         color1, color2 = self.get_colors()
         statements = self.stat.get_if_while_for_with_etc()
+        dict_of_statements = {'if': statements[0], 'while': statements[1], 'for': statements[2], 'with': statements[3], 'try': statements[4], 'Total defined variables': statements[5]}
         
+        statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in dict_of_statements.items()])
+        statements_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", statements_md)
+        statements_md = f"""[pale_turquoise1]{statements_md}[/]"""
+        statements_panel = Panel(renderable=statements_md,
+                                    title="[black]Statements",
+                                    title_align="left",
+                                    border_style="blue")
     
-        statements_md = f"if: {statements[0]}\nwhile {statements[1]}\nfor: {statements[2]}\nwith: {statements[3]}\nTry: {statements[4]}\nTotal Variables defined: {statements[5]}"
-
-        statements_panel = Panel(renderable=statements_md,  title="[black]Total Statements  (In all files)", title_align="left", border_style="blue", height=len(statements) + 2, width=40)
         return statements_panel
-
+        
+        
+                
     def get_deco(self):
         color1, color2 = self.get_colors()
         deco = self.stat.count_decorator()
