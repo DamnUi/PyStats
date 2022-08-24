@@ -1,5 +1,5 @@
 def i_defined_this():
-    pass
+    raise NotImplementedError()
 
 
 i_defined_this()
