@@ -237,11 +237,15 @@ class Stat:
         most_used_variable = {key: value
                               for key, value in
                               sorted(item_list.items(), key=lambda item: item[1], reverse=True)}
+        #Subtract 1 from each element in most_used_variable
+        most_used_variable = {key: value - 1 for key, value in most_used_variable.items()} #It shows 1 extra var so
+
+
 
         if n_variables is not None:
             return {key: value for key, value in list(most_used_variable.items())[:n_variables]}
         else:
-            return most_used_variable
+            return most_used_variable 
 
     def get_import_names(self, import_type: str = "all"):
         all_imports = []
@@ -421,6 +425,23 @@ class Stat:
                     
                         
         return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
+    
+    def count_decorator(self):
+        #Using regex with count
+        decorator_list = {}
+        for file_path in self.directory:
+            with open(file_path, encoding="utf8") as open_file:
+                code = [line.rstrip("\n") for line in open_file]
+                gex = re.compile(r"(^\s*@(\w+)\s*?(\S)([(|)]?.*)?(:$)?)", re.MULTILINE | re.IGNORECASE)
+                for line in code:
+                    line = line.strip()
+                    line = str(line)
+                    if gex.match(line):
+                        decorator_list[gex.match(line).group(1)] = decorator_list.get(gex.match(line).group(1), 0) + 1
+                        
+        return decorator_list
+
+            
 
 
 
@@ -643,7 +664,20 @@ class VisualWrapper:
         statements_panel = Panel(renderable=statements_md,  title="[black]Total Statements  (In all files)", title_align="left", border_style="blue", height=len(statements) + 2, width=40)
         return statements_panel
 
+    def get_deco(self):
+        color1, color2 = self.get_colors()
+        deco = self.stat.count_decorator()
+        # add \n after each element except after last element
+        deco_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in deco.items()])
+        deco_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", deco_md)
+        deco_md = f"""[pale_turquoise1]{deco_md}[/]"""
+        deco_panel = Panel(renderable=deco_md,
+                           title="[black]Decorators",
+                           title_align="left",
+                           border_style="blue",
+                           width=25)
 
+        return deco_panel
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
@@ -656,7 +690,7 @@ class VisualWrapper:
         with Status(f'[black]Analyzing code with {return_founds[0]}[/] With files [green]{self.directory}[/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments(), info.get_deco()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
             
@@ -677,4 +711,3 @@ if args.adhd:
     info = VisualWrapper(working_path)
 
 print(info.get_all())
-# test
