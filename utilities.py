@@ -6,7 +6,7 @@ from collections import Counter
 
 
 def is_nested_list(input_list):
-    return any([isinstance(x, list) for x in input_list])
+    return any(isinstance(x, list) for x in input_list)
 
 
 def AND(cond1, cond2):
@@ -54,7 +54,7 @@ def from_imports(input_file, get_assets=False):
             # change the key 'from' to 'from .' for the base directory imports
             result = {'from .' if key == 'from' else key: value for key, value in result_.items()}
     except ValueError:
-        result = dict()
+        result = {}
 
     return result
 

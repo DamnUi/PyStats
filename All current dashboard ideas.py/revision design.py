@@ -4,9 +4,7 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.align import Align    
 from rich.layout import Layout
-from rich.live import Live
 from datetime import datetime
-from rich.progress import ProgressColumn, ProgressBar, Progress
 
 console = Console(height=5) #possibly some kind of external algorithm to find an appropriate size and length?
 
@@ -26,7 +24,7 @@ wraped_main_screen = Align(unwraped_main_screen, align='center', style='green')#
 
 
 
-stat_less_md = f"""
+stat_less_md = """
 File Path(s):? , Pc_Name: not needed , User: not needed , Date: , Time_to_file_report: possibly not needed
 could also add info about varibles and imports here?
 """

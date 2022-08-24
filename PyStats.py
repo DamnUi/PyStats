@@ -234,9 +234,7 @@ class Stat:
         if args.vars:
             n_variables = int(args.vars)
 
-        most_used_variable = {key: value
-                              for key, value in
-                              sorted(item_list.items(), key=lambda item: item[1], reverse=True)}
+        most_used_variable = dict(sorted(item_list.items(), key=lambda item: item[1], reverse=True))
         #Subtract 1 from each element in most_used_variable
         most_used_variable = {key: value - 1 for key, value in most_used_variable.items()} #It shows 1 extra var so
 
@@ -245,7 +243,7 @@ class Stat:
 
 
         if n_variables is not None:
-            return {key: value for key, value in list(most_used_variable.items())[:n_variables]}
+            return dict(list(most_used_variable.items())[:n_variables])
         else:
             return most_used_variable 
 
@@ -253,11 +251,11 @@ class Stat:
         all_imports = []
         imports = self.__scrape_imports(get_assets=True)
 
-        from_ = [k for k in imports.keys() if "from" in k]
+        from_ = [k for k in imports if "from" in k]
         # sort by frequency of imports
         from_.sort()
 
-        import_ = [k for k in imports.keys() if "import" in k]
+        import_ = [k for k in imports if "import" in k]
         # Sort by frequency of import
         import_.sort(key=lambda x: imports[x], reverse=True)
         import_.sort()
@@ -299,10 +297,8 @@ class Stat:
                     most_called_func[each] = len(matched_lines) - 1
 
         # Sort by frequency of use
-        most_called_func = {key: value
-                            for key, value in
-                            sorted(most_called_func.items(), key=lambda item: item[1],
-                                   reverse=True)}
+        most_called_func = dict(sorted(most_called_func.items(), key=lambda item: item[1],
+                                   reverse=True))
 
         # if frequency is 0 then replace it with text 'Only Defined'
         
@@ -364,17 +360,13 @@ class Stat:
                         if not class_name.endswith('__'):
                             if display_line:
                                 class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
-                                class_names = {key: value
-                                                  for key, value in
-                                                    sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True)}  
+                                class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
+                                                              reverse=True))  
                             else:
                                 class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{most_called_func[class_name]}"]
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
-                                class_names = {key: value
-                                                  for key, value in
-                                                    sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True)}    
+                                class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
+                                                              reverse=True))    
 
 
                                 
@@ -383,7 +375,6 @@ class Stat:
         if get_:
             req_class_names = []
             for idk in list(class_names.items()):
-                # req_class_names.append(idk[0][get_])
                 req_class_names.append(idk[1][get_])
             return req_class_names
         
@@ -580,21 +571,10 @@ class VisualWrapper:
 
         return import_panel, from_import_panel
 
-    # def get_most_called_func(self):
-    #     color1, color2 = self.get_colors()
 
-    #     func_names, most_called_func = self.stat.most_called_func()
 
-    #     func_names_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
-    #                                for key, value in most_called_func.items()])
 
-    #     func_names_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_names_md)
 
-    #     func_names_md = f"""[pale_turquoise1]{func_names_md}[/]"""
-    #     func_panel = Panel(renderable=func_names_md,
-    #                        title="[black]Most Called Functions [red][/]",
-    #                        title_align="left",
-    #                        border_style="blue")
 
     #    return func_panel
 
@@ -658,7 +638,6 @@ class VisualWrapper:
         return func_panel
 
     def get_statments(self):
-        from rich.syntax import Syntax
         color1, color2 = self.get_colors()
         statements = self.stat.get_if_while_for_with_etc()
         dict_of_statements = {'if': statements[0], 'while': statements[1], 'for': statements[2], 'with': statements[3], 'try': statements[4], 'Total defined variables': statements[5]}
