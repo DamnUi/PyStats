@@ -111,7 +111,7 @@ class Stat:
         else:
             self.directory = [directory]
 
-        self.directory.sort() if isinstance(self.directory, list) else self.directory
+        #self.directory.sort() if isinstance(self.directory, list) else self.directory
 
         # if no file is present, break the program efficiently
         if not self.directory:
@@ -320,7 +320,7 @@ class Stat:
             with open(file_path, encoding='utf-8') as fml:
                 code = fml.read()
                 node = ast.parse(code)
-                for indx, obj in enumerate(list(node.body)):
+                for obj in list(node.body):
                     if isinstance(obj, ast.ClassDef):
                         ls.append(len(obj.body))
             
@@ -548,16 +548,15 @@ class VisualWrapper:
         #Get the smaller of the two
         if len_import_imports < len_from_imports:
             difference = len_from_imports - len_import_imports
-            for i in range(difference):
+            for _ in range(difference):
                 import_md += "\n"
         else:
             difference = len_import_imports - len_from_imports
             #Add the difference as lines to the import_md
-            for i in range(difference):
+            for _ in range(difference):
                 import_md_from += "\n"
                 
 
-        learn = len_from_imports if len_import_imports < len_from_imports else len_import_imports
 
         import_panel = Panel(renderable=import_md,
                              title="[black]Count of 'import' statements",
@@ -595,7 +594,6 @@ class VisualWrapper:
     def get_func(self, get_=None):
         color1, color2 = self.get_colors()
         func = self.stat.get_func(get_=get_)
-        num = 0
         # add \n after each element except after last element
         try:
             func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
