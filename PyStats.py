@@ -111,7 +111,7 @@ class Stat:
         else:
             self.directory = [directory]
 
-        #self.directory.sort() if isinstance(self.directory, list) else self.directory
+        # self.directory.sort() if isinstance(self.directory, list) else self.directory
 
         # if no file is present, break the program efficiently
         if not self.directory:
@@ -121,7 +121,6 @@ class Stat:
 
         self.directory_details = [f"[u][green]{len(self.directory)} file(s) found in {len(dir_)} "
                                   f"folders:[/][/]\n"]
-
 
     @property
     def return_directory_details(self):
@@ -165,7 +164,8 @@ class Stat:
         variables_ = [line_
                       for file_ in self.directory
                       for line_ in open(file_, encoding="utf-8")
-                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)] #\s*\w+\s=\s maybe ?
+                      # \s*\w+\s=\s maybe ?
+                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)]
 
         list_of_variables = [variables.strip()
                              if full_line_of_variable
@@ -173,22 +173,19 @@ class Stat:
                              for variables in variables_
                              if variables]
 
-        #Remove dupelicates in list_ofvariables
+        # Remove duplicates in list_ofvariables
         list_of_variables = list(set(list_of_variables))
-        list_of_variables =  _utils.list_to_counter_dictionary(list_of_variables)
-        
-
+        list_of_variables = _utils.list_to_counter_dictionary(list_of_variables)
 
         for file_path in self.directory:
             with open(file_path, encoding="utf-8") as file:
-                #Lines without \n
+                # Lines without \n
                 lines = [line.strip() for line in file.readlines()]
-                for varible in list_of_variables:
-                    rgex = fr"(self.)?\b(?=\w){varible}\b(?!\w)"
+                for variable in list_of_variables:
+                    regex = fr"(self.)?\b(?=\w){variable}\b(?!\w)"
                     for line in lines:
-                        if re.search(rgex, line, re.IGNORECASE):
-                            list_of_variables[varible] += 1
-
+                        if re.search(regex, line, re.IGNORECASE):
+                            list_of_variables[variable] += 1
 
         return list_of_variables
 
@@ -235,12 +232,8 @@ class Stat:
             n_variables = int(args.vars)
 
         most_used_variable = dict(sorted(item_list.items(), key=lambda item: item[1], reverse=True))
-        #Subtract 1 from each element in most_used_variable
-        most_used_variable = {key: value - 1 for key, value in most_used_variable.items()} #It shows 1 extra var so
-
-
-
-
+        # Subtract 1 from each element in most_used_variable
+        most_used_variable = {key: value - 1 for key, value in most_used_variable.items()}  # It shows 1 extra var so
 
         if n_variables is not None:
             return dict(list(most_used_variable.items())[:n_variables])
@@ -298,10 +291,9 @@ class Stat:
 
         # Sort by frequency of use
         most_called_func = dict(sorted(most_called_func.items(), key=lambda item: item[1],
-                                   reverse=True))
+                                reverse=True))
 
         # if frequency is 0 then replace it with text 'Only Defined'
-        
 
         return func_names, most_called_func
 
@@ -316,7 +308,6 @@ class Stat:
                 gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?",
                                  re.MULTILINE | re.IGNORECASE)
 
-            
             with open(file_path, encoding='utf-8') as fml:
                 code = fml.read()
                 node = ast.parse(code)
@@ -330,17 +321,17 @@ class Stat:
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
-                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[0]} Functions']
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}",
+                                               f'in file: {file}',
+                                               f'Contains {ls[0]} Functions']
                 
                 cur_line += 1
-
-
 
         return class_names
 
     def get_func(self, display_line=args.getline, get_=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
-        times_used = self.most_called_func() #Only 
+        times_used = self.most_called_func()  # Only
         most_called_func = times_used[1]
         class_names = {}
         for file_path in self.directory:
@@ -359,18 +350,19 @@ class Stat:
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
+                                class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " \
+                                                                 f"@ line # {cur_line}"
                                 class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True))  
+                                                          reverse=True))
                             else:
-                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{most_called_func[class_name]}"]
-                                #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
+                                class_names[class_name] = ["This is useless dont use 0 or nothing",
+                                                           f'[cyan]{class_name}:[/]', f"{file}",
+                                                           f"{cur_line}", f"{most_called_func[class_name]}"]
+                                # Sort by frequency class_name[class_name][-1]
+                                # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
                                 class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True))    
+                                                          reverse=True))
 
-
-                                
-                                
                     cur_line += 1
         if get_:
             req_class_names = []
@@ -383,10 +375,10 @@ class Stat:
     def get_if_while_for_with_etc(self):
         if_list = []
         while_list = []
-        for_or_aysyncfor_list = []
+        for_or_async_for_list = []
         with_list = []
         try_list = []
-        varibles = []
+        variables = []
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
                 code = open_file.read()
@@ -395,32 +387,31 @@ class Stat:
                 for thing in ast.walk(node=node):
                     if isinstance(thing, ast.If):
                         if_list.append(thing)
-                        #file path  
-                        #if_list.append(file_path)
+                        # file path
+                        # if_list.append(file_path)
                     if isinstance(thing, ast.While):
                         while_list.append(thing)
-                        #while_list.append(file_path)
+                        # while_list.append(file_path)
                     if isinstance(thing, ast.For):
-                        for_or_aysyncfor_list.append(thing)
-                        #for_or_aysyncfor_list.append(file_path)
+                        for_or_async_for_list.append(thing)
+                        # for_or_async_for_list.append(file_path)
                     if isinstance(thing, ast.AsyncFor):
-                        for_or_aysyncfor_list.append(thing)
-                        #for_or_aysyncfor_list.append(file_path)
+                        for_or_async_for_list.append(thing)
+                        # for_or_async_for_list.append(file_path)
                     if isinstance(thing, ast.With):
                         with_list.append(thing)
-                        #with_list.append(file_path)
-                    #try statments
+                        # with_list.append(file_path)
+                    # try statements
                     if isinstance(thing, ast.Try):
                         try_list.append(thing)
-                        #try_list.append(file_path)
+                        # try_list.append(file_path)
                     if isinstance(thing, ast.Assign):
-                        varibles.append(thing)
-                    
-                        
-        return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
+                        variables.append(thing)
+
+        return len(if_list), len(while_list), len(for_or_async_for_list), len(with_list), len(try_list), len(variables)
     
     def count_decorator(self):
-        #Using regex with count
+        # Using regex with count
         decorator_list = {}
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
@@ -433,9 +424,6 @@ class Stat:
                         decorator_list[gex.match(line).group(1)] = decorator_list.get(gex.match(line).group(1), 0) + 1
                         
         return decorator_list
-
-            
-
 
 
 class VisualWrapper:
@@ -504,8 +492,7 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
 
         variables = self.stat.most_used_variable(n_variables)
-        
-        
+
         if n_variables is None:
             start = "Frequency of variables used"
         else:
@@ -527,7 +514,6 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
         imports = self.stat.import_count()
 
-        
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
@@ -545,37 +531,29 @@ class VisualWrapper:
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
         import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
 
-        #Get the smaller of the two
+        # Get the smaller of the two
         if len_import_imports < len_from_imports:
             difference = len_from_imports - len_import_imports
             for _ in range(difference):
                 import_md += "\n"
         else:
             difference = len_import_imports - len_from_imports
-            #Add the difference as lines to the import_md
+            # Add the difference as lines to the import_md
             for _ in range(difference):
                 import_md_from += "\n"
-                
-
 
         import_panel = Panel(renderable=import_md,
-                             title="[black]Count of 'import' statements",
+                             title="[black]Amount of 'import' statements",
                              title_align="left",
                              border_style="blue", )
 
         from_import_panel = Panel(renderable=import_md_from,
-                                  title="[black]Count of 'from' statements",
+                                  title="[black]Amount of 'from' statements",
                                   title_align="left",
                                   border_style="blue", )
 
         return import_panel, from_import_panel
-
-
-
-
-
-
-    #    return func_panel
+    # return func_panel
 
     def get_class(self):
         color1, color2 = self.get_colors()
@@ -600,8 +578,7 @@ class VisualWrapper:
             func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
             func_md = f"""[pale_turquoise1]{func_md}[/]"""
         except Exception as e: 
-            try:
-            #remove brackets and ' from list
+            try:  # remove brackets and ' from list
                 old_func = func
                 func = ('\n'.join(func))
                 if get_ == 1:
@@ -617,17 +594,15 @@ class VisualWrapper:
                     title = '[black]Times Used'
                     width = len(max(old_func))*10
                 func_panel = Panel(renderable=func,
-                    title=title,
-                    title_align="left",
-                    border_style="blue",
-                    width=width)
+                                   title=title,
+                                   title_align="left",
+                                   border_style="blue",
+                                   width=width)
                 return func_panel
             except Exception as e:
                 print(e)
                 pass
 
-            
-            
         func_panel = Panel(renderable=func,
                            title="[black]Functions",
                            title_align="left",
@@ -635,23 +610,23 @@ class VisualWrapper:
 
         return func_panel
 
-    def get_statments(self):
+    def get_statements(self):
         color1, color2 = self.get_colors()
         statements = self.stat.get_if_while_for_with_etc()
-        dict_of_statements = {'if': statements[0], 'while': statements[1], 'for': statements[2], 'with': statements[3], 'try': statements[4], 'Total defined variables': statements[5]}
+        dict_of_statements = {'if': statements[0], 'while': statements[1], 'for': statements[2], 'with': statements[3],
+                              'try': statements[4], 'Total defined variables': statements[5]}
         
-        statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in dict_of_statements.items()])
+        statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                   for key, value in dict_of_statements.items()])
         statements_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", statements_md)
         statements_md = f"""[pale_turquoise1]{statements_md}[/]"""
         statements_panel = Panel(renderable=statements_md,
-                                    title="[black]Statements",
-                                    title_align="left",
-                                    border_style="blue")
+                                 title="[black]Statements",
+                                 title_align="left",
+                                 border_style="blue")
     
         return statements_panel
-        
-        
-                
+
     def get_deco(self):
         color1, color2 = self.get_colors()
         deco = self.stat.count_decorator()
@@ -666,6 +641,7 @@ class VisualWrapper:
                            width=25)
 
         return deco_panel
+
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
@@ -678,19 +654,20 @@ class VisualWrapper:
         with Status(f'[black]Analyzing code with {return_founds[0]}[/] With files [green]{self.directory}[/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments(), info.get_deco()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statements(), info.get_deco()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
             
-            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2)]) #The colours used for this need to change
+            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2)])
+            # The colours used for this need to change
 
-            groups = Group(self.quick_stats(),Rule('[black]At a glance'), group1, self.get_class(),
+            groups = Group(self.quick_stats(), Rule('[black]At a glance'), group1, self.get_class(),
                            Rule('[black]Functions', style='yellow'), group3,
                            Rule('[black]Imports (from count is not working currently)', style='red'),
                            group2)
             if gui:
                 return Panel(renderable=groups, title="[black]All Stats", title_align="center",
-                            width=None, style=self.get_random_color())
+                             width=None, style=self.get_random_color())
 
 
 old_info = Stat(working_path)
