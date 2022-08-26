@@ -6,7 +6,7 @@ import random
 import re
 import sys
 import ast
-
+import math
 
 from rich import print
 from rich.columns import Columns
@@ -363,8 +363,10 @@ class Stat:
                                 class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
                                                               reverse=True))  
                             else:
-                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{most_called_func[class_name]}"]
+                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{(most_called_func[class_name])+1}"] #+ 1 so that it also counts the time its defined could delete this if not needed
+                                
                                 #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
+                                
                                 class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
                                                               reverse=True))    
 
@@ -415,26 +417,39 @@ class Stat:
                         #try_list.append(file_path)
                     if isinstance(thing, ast.Assign):
                         varibles.append(thing)
-                    
+        
+        try: 
+            tl = int(math.ceil(len(try_list)/2))
+        except Exception as e:
+            tl = len(try_list)
                         
         return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
     
+
+    
+    
     def count_decorator(self):
-        #Using regex with count
         decorator_list = {}
+        line_num = 1
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
                 code = [line.rstrip("\n") for line in open_file]
                 gex = re.compile(r"(^\s*@(\w+)\s*?(\S)([(|)]?.*)?(:$)?)", re.MULTILINE | re.IGNORECASE)
                 for line in code:
+                    #Get with line
                     line = line.strip()
-                    line = str(line)
+                    line = str(line) 
                     if gex.match(line):
-                        decorator_list[gex.match(line).group(1)] = decorator_list.get(gex.match(line).group(1), 0) + 1
+                        curr_val = line_num
+                        decorator_list[gex.match(line).group(1)] = decorator_list.get(gex.match(line).group(1), 0) + 1 
                         
+                    line_num += 1          
         return decorator_list
-
-            
+    
+                
+#A dividing rule for me to find where these classes even start and end
+#A dividing rule for me to find where these classes even start and end
+#A dividing rule for me to find where these classes even start and end           
 
 
 
@@ -571,12 +586,6 @@ class VisualWrapper:
         return import_panel, from_import_panel
 
 
-
-
-
-
-    #    return func_panel
-
     def get_class(self):
         color1, color2 = self.get_colors()
         classes = self.stat.get_classes()
@@ -627,7 +636,6 @@ class VisualWrapper:
                 pass
 
             
-            
         func_panel = Panel(renderable=func,
                            title="[black]Functions",
                            title_align="left",
@@ -650,7 +658,6 @@ class VisualWrapper:
     
         return statements_panel
         
-        
                 
     def get_deco(self):
         color1, color2 = self.get_colors()
@@ -666,6 +673,7 @@ class VisualWrapper:
                            width=25)
 
         return deco_panel
+    
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
