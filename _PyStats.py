@@ -230,6 +230,10 @@ class Stat:
         most_used_variable = {key: value - 1 for key, value in
                               most_used_variable.items()}  # It shows 1 extra var so
 
+        #total number of defined vars
+        total_vars = len(most_used_variable.keys())
+        
+
         if n_variables is not None:
             return dict(list(most_used_variable.items())[:n_variables])
         else:
@@ -310,7 +314,19 @@ class Stat:
                 node = ast.parse(code)
                 for each in ast.walk(node):
                     if isinstance(each, ast.ClassDef):
-                        ls.append(len(each.body))
+                        ls.append(each.body)
+                        
+                #My original solution (sucks)
+                #         if isinstance(each, ast.ClassDef):
+                #         for obj in each.body:
+                #             if isinstance(obj, ast.Pass):
+                #                 pass
+                #             elif isinstance(obj, ast.FunctionDef):
+                #                 ls.append(obj)
+                                
+                # ls2.append(len(ls))
+
+                        
 
             for line in lines:
                 line = line.strip()
@@ -318,10 +334,15 @@ class Stat:
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
+                    
+                    if isinstance(ls[itr][0], ast.Pass):
+                        ls[itr].remove(ls[itr][0])
+
                     class_names[class_name] = [line, f"Defined on line: {cur_line}",
-                                               f'in file: {file}', f'Contains {ls[itr]} Functions']
+                                               f'in file: {file}', f'Contains {len(ls[itr])} Functions']
                     itr += 1
                 cur_line += 1
+                
 
         return class_names
 
@@ -371,6 +392,7 @@ class Stat:
         return class_names
 
     def get_control_statements(self):
+        mvars = self.most_used_variable()
         if_list, while_list, for_or_async_for_list = [], [], []
         with_list, try_list, variables = [], [], []
         for file_path in self.directory:
@@ -394,18 +416,22 @@ class Stat:
 
                     # I have checked several variables, and a lot of them are inconsistent with
                     # the counts, so I think we shouldn't include this one
-                    if isinstance(thing, ast.Assign):
-                        variables.append(thing)
-
+                    # if isinstance(thing, ast.Assign):
+                    #     variables.append(thing)
+                    # I agree with this one, it's not very useful
         # Essentially the try list is somewhat wrong this small piece of code is to fix it,
         # it rounds up the given number of times the variable is used
-        try:
-            tl = int(math.ceil(len(try_list) / 2))
-        except Exception:
-            tl = len(try_list)  # why not use it if you've defined it here?
+        # try:
+        #     tl = int(math.ceil(len(try_list) / 2))
+        # except Exception:
+        #     tl = len(try_list)  # why not use it if you've defined it here?
+
+        
+            
+        
 
         return (len(if_list), len(while_list), len(for_or_async_for_list), len(with_list),
-                len(try_list), len(variables))
+                len(try_list), len(mvars.keys()))
 
     def count_decorator(self):
         decorator_list = {}
@@ -469,7 +495,7 @@ class VisualWrapper:
         current_directory = os.getcwd()
         rel_path = os.path.relpath(current_directory)
 
-        tree = Tree(f'[magenta b] :open_file_folder: {rel_path if rel_path != "." else "./"}[/]')
+        tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/]', guide_style='red') # guide_style changes the colour of the lines that go to the files
 
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
@@ -605,7 +631,6 @@ class VisualWrapper:
 
         except Exception as e:
             try:
-                # remove brackets and ' from list
                 old_func = func
                 func = ('\n'.join(func))
                 if get_ == 1:
@@ -640,12 +665,12 @@ class VisualWrapper:
     def get_statements(self):
         color1, color2 = self.get_colors()
         statements = self.stat.get_control_statements()
-        statements_dict = {'if': statements[0],
-                           'while': statements[1],
-                           'for': statements[2],
-                           'with': statements[3],
-                           'try': statements[4],
-                           'Total defined variables': statements[5]}
+        statements_dict = {'If': statements[0],
+                           'While': statements[1],
+                           'For': statements[2],
+                           'With': statements[3],
+                           'Try': statements[4],
+                           'Total Defined Variables': statements[5]}
         # again, I think we shouldn't have the Total defined variable
 
         statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
