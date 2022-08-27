@@ -8,11 +8,6 @@ import random
 import re
 import sys
 
-from rich.filesize import decimal
-from rich.markup import escape
-from rich.text import Text
-from rich.tree import Tree
-
 from rich.columns import Columns
 from rich.console import Console
 from rich.console import Group
@@ -20,14 +15,16 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.status import Status
 from rich.traceback import install as install_traceback
-
-console = Console(record=True)
-print = console.print
-
-
+from rich.tree import Tree
 
 import errors as _errors
 import utilities as _utils
+
+console = Console(record=True)
+
+# Changed it to pystat_print because it wouldn't let me print other things that I wanted using
+# the standard print statement
+pystat_print = console.print
 
 install_traceback(show_locals=False)
 
@@ -67,12 +64,10 @@ if __name__ == "__main__":
 
     parser.add_argument("-imgpath", help="Input Absolute Path to create the img example: \
                         file_name (dont add anything else)", default=None)
-    
 
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
-
 
     if args.vars is None:
         args.vars = False
@@ -116,7 +111,7 @@ class Stat:
     def __init__(self, directory) -> None:
         # this is to accommodate projects with multiple directories as well as those with
         # multiple files in a single directory
-        self.old_dir = directory
+
         if _utils.is_nested_list(directory):
             self.directory = [os.path.relpath(dir_)
                               for dir_ in list(itertools.chain.from_iterable(directory))]
@@ -125,21 +120,11 @@ class Stat:
         else:
             self.directory = [directory]
 
-        #self.directory.sort() if isinstance(self.directory, list) else self.directory
-
         # if no file is present, break the program efficiently
         if not self.directory:
             raise _errors.NoFilePresent("No file present in given directory.")
         else:
             dir_ = [x for x in self.directory if "__init__" in x]
-
-        self.directory_details = [f"[u][green]{len(self.directory)} file(s) found in {len(dir_)} "
-                                  f"folders:[/][/]\n"]
-
-
-    @property
-    def return_directory_details(self):
-        return self.directory_details
 
     @staticmethod
     def add_imports_to_results(import_list, result_dictionary):
@@ -179,7 +164,8 @@ class Stat:
         variables_ = [line_
                       for file_ in self.directory
                       for line_ in open(file_, encoding="utf-8")
-                      if re.match(r"^\s*\w+\s=\s", line_) or re.match(r"^\s*self.\w+\s=\s", line_)] #\s*\w+\s=\s maybe ?
+                      if re.match(r"^\s*\w+\s=\s", line_)
+                      or re.match(r"^\s*self.\w+\s=\s", line_)]  # \s*\w+\s=\s maybe ?
 
         list_of_variables = [variables.strip()
                              if full_line_of_variable
@@ -187,22 +173,18 @@ class Stat:
                              for variables in variables_
                              if variables]
 
-        #Remove dupelicates in list_ofvariables
+        # Remove duplicates in list_of_variables
         list_of_variables = list(set(list_of_variables))
-        list_of_variables =  _utils.list_to_counter_dictionary(list_of_variables)
-        
-
+        list_of_variables = _utils.list_to_counter_dictionary(list_of_variables)
 
         for file_path in self.directory:
             with open(file_path, encoding="utf-8") as file:
-                #Lines without \n
-                lines = [line.strip() for line in file.readlines()]
-                for varible in list_of_variables:
-                    rgex = fr"(self.)?\b(?=\w){varible}\b(?!\w)"
-                    for line in lines:
-                        if re.search(rgex, line, re.IGNORECASE):
-                            list_of_variables[varible] += 1
-
+                lines = [_line.strip() for _line in file.readlines()]
+                for variable in list_of_variables:
+                    regex = fr"(self.)?\b(?=\w){variable}\b(?!\w)"
+                    for line_ in lines:
+                        if re.search(regex, line_, re.IGNORECASE):
+                            list_of_variables[variable] += 1
 
         return list_of_variables
 
@@ -249,13 +231,14 @@ class Stat:
             n_variables = int(args.vars)
 
         most_used_variable = dict(sorted(item_list.items(), key=lambda item: item[1], reverse=True))
-        #Subtract 1 from each element in most_used_variable
-        most_used_variable = {key: value - 1 for key, value in most_used_variable.items()} #It shows 1 extra var so
+        # Subtract 1 from each element in most_used_variable
+        most_used_variable = {key: value - 1 for key, value in
+                              most_used_variable.items()}  # It shows 1 extra var so
 
         if n_variables is not None:
             return dict(list(most_used_variable.items())[:n_variables])
         else:
-            return most_used_variable 
+            return most_used_variable
 
     def get_import_names(self, import_type: str = "all"):
         all_imports = []
@@ -308,29 +291,25 @@ class Stat:
 
         # Sort by frequency of use
         most_called_func = dict(sorted(most_called_func.items(), key=lambda item: item[1],
-                                   reverse=True))
+                                       reverse=True))
 
         # if frequency is 0 then replace it with text 'Only Defined'
-        
 
         return func_names, most_called_func
 
-
-
     def get_classes(self):
-        class_names = {}  
-        ls = [] 
-        itr = 0         
+        class_names = {}
+        ls = []
+        itr = 0
         for file_path in self.directory:
             cur_line = 1
-            
+
             with open(file_path, encoding="utf-8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
                 file = open_file.name
                 gex = re.compile(r"^\s*class\s+(\w+)\s*?(\S)([(|)]?.*)?(:$)?",
                                  re.MULTILINE | re.IGNORECASE)
 
-            
             with open(file_path, encoding='utf-8') as fml:
                 code = fml.read()
                 node = ast.parse(code)
@@ -344,17 +323,16 @@ class Stat:
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
-                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[itr]} Functions']
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}",
+                                               f'in file: {file}', f'Contains {ls[itr]} Functions']
                     itr += 1
                 cur_line += 1
-
-
 
         return class_names
 
     def get_func(self, display_line=args.getline, get_=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
-        times_used = self.most_called_func() #Only 
+        times_used = self.most_called_func()  # Only
         most_called_func = times_used[1]
         class_names = {}
         for file_path in self.directory:
@@ -367,108 +345,103 @@ class Stat:
 
                 for line_ in lines:
                     line_ = str(line_.strip())
-                    
+
                     # could possibly also get the line where the class was defined
                     if gex.match(line_):
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
-                                class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True))  
+                                class_names[
+                                    class_name] = line_, f"[red]In file[/] {file} &"  f"[red]defined[/] " f"@ line # {cur_line}"
+                                class_names = dict(
+                                        sorted(class_names.items(), key=lambda item: item[1][-1],
+                                               reverse=True))
                             else:
-                                class_names[class_name] = ["This is useless dont use 0 or nothing", f'[cyan]{class_name}:[/]', f"{file}", f"{cur_line}", f"{(most_called_func[class_name])+1}"] #+ 1 so that it also counts the time its defined could delete this if not needed
-                                
-                                #Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
-                                
-                                class_names = dict(sorted(class_names.items(), key=lambda item: item[1][-1],
-                                                              reverse=True))    
+                                class_names[class_name] = ["This is useless dont use 0 or nothing",
+                                                           f'[cyan]{class_name}:[/]', f"{file}",
+                                                           f"{cur_line}",
+                                                           f"{(most_called_func[class_name]) + 1}"]  # + 1 so that it also counts the time its defined could delete this if not needed
 
+                                # Sort by frequency class_name[class_name][-1] # THIS TOOK ME AN HR OR MORE HOLY SHIT AND GITHUB COPILOT TOO
 
-                                
-                                
+                                class_names = dict(
+                                        sorted(class_names.items(), key=lambda item: item[1][-1],
+                                               reverse=True))
+
                     cur_line += 1
         if get_:
             req_class_names = []
             for idk in list(class_names.items()):
                 req_class_names.append(idk[1][get_])
             return req_class_names
-        
+
         return class_names
-    
-    def get_if_while_for_with_etc(self):
-        if_list = []
-        while_list = []
-        for_or_aysyncfor_list = []
-        with_list = []
-        try_list = []
-        varibles = []
+
+    def get_control_statements(self):
+        if_list, while_list, for_or_async_for_list = [], [], []
+        with_list, try_list, variables = [], [], []
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
-                code = open_file.read()
-
-                node = ast.parse(code)
+                node = ast.parse(open_file.read())
                 for thing in ast.walk(node=node):
                     if isinstance(thing, ast.If):
                         if_list.append(thing)
-                        #file path  
-                        #if_list.append(file_path)
+
                     if isinstance(thing, ast.While):
                         while_list.append(thing)
-                        #while_list.append(file_path)
-                    if isinstance(thing, ast.For):
-                        for_or_aysyncfor_list.append(thing)
-                        #for_or_aysyncfor_list.append(file_path)
-                    if isinstance(thing, ast.AsyncFor):
-                        for_or_aysyncfor_list.append(thing)
-                        #for_or_aysyncfor_list.append(file_path)
+
+                    if isinstance(thing, (ast.For, ast.AsyncFor)):
+                        for_or_async_for_list.append(thing)
+
                     if isinstance(thing, ast.With):
                         with_list.append(thing)
-                        #with_list.append(file_path)
-                    #try statments
+
                     if isinstance(thing, ast.Try):
                         try_list.append(thing)
-                        #try_list.append(file_path)
+
+                    # I have checked several variables, and a lot of them are inconsistent with
+                    # the counts, so I think we shouldn't include this one
                     if isinstance(thing, ast.Assign):
-                        varibles.append(thing)
-        
-        try: #Essentially the try list is somewhat wrong this small piece of code is to fix it, it rounds up the given number of times the varible is used
-            tl = int(math.ceil(len(try_list)/2))
+                        variables.append(thing)
+
+        try:  # Essentially the try list is somewhat wrong this small piece of code is to fix it, it rounds up the given number of times the varible is used
+            tl = int(math.ceil(len(try_list) / 2))
         except Exception:
             tl = len(try_list)
-                        
-        return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
-    
 
-    
-    
+        return len(if_list), len(while_list), len(for_or_async_for_list), len(with_list), len(
+                try_list), len(variables)
+
     def count_decorator(self):
         decorator_list = {}
         line_num = 1
         for file_path in self.directory:
             with open(file_path, encoding="utf8") as open_file:
                 code = [line.rstrip("\n") for line in open_file]
-                gex = re.compile(r"(^\s*@(\w+)\s*?(\S)([(|)]?.*)?(:$)?)", re.MULTILINE | re.IGNORECASE)
+                gex = re.compile(r"(^\s*@(\w+)\s*?(\S)([(|)]?.*)?(:$)?)",
+                                 re.MULTILINE | re.IGNORECASE)
                 for line in code:
-                    #Get with line
+                    # Get with line
                     line = line.strip()
-                    line = str(line) 
+                    line = str(line)
                     if gex.match(line):
                         curr_val = line_num
-                        decorator_list[gex.match(line).group(1)] = decorator_list.get(gex.match(line).group(1), 0) + 1 
-                        
-                    line_num += 1          
+                        decorator_list[gex.match(line).group(1)] = decorator_list.get(
+                                gex.match(line).group(1), 0) + 1
+
+                    line_num += 1
         return decorator_list
 
     def get_arg(self):
-        #Get all commandline args and what value their currently on 
-        arg_list = {'-df': args.df, '-neglect': args.neglect, '-getline': args.getline, '--vars': args.vars, '--adhd': args.adhd, '-imgpath': args.imgpath}
+        # Get all commandline args and what value their currently on
+        arg_list = {'-df': args.df, '-neglect': args.neglect, '-getline': args.getline,
+                    '--vars': args.vars, '--adhd': args.adhd, '-imgpath': args.imgpath}
         return arg_list
-                
-#A dividing rule for me to find where these classes even start and end
-#A dividing rule for me to find where these classes even start and end
-#A dividing rule for me to find where these classes even start and end           
 
+
+# A dividing rule for me to find where these classes even start and end
+# A dividing rule for me to find where these classes even start and end
+# A dividing rule for me to find where these classes even start and end
 
 
 class VisualWrapper:
@@ -495,30 +468,25 @@ class VisualWrapper:
         return random.choice(good_colours)
 
     def quick_stats(self):
-        c_dir  = os.getcwd()
-        founds = self.stat.return_directory_details[0]
+        current_directory = os.getcwd()
+        rel_path = os.path.relpath(current_directory)
 
-        tree = Tree(f'[bold magenta]:open_file_folder: {c_dir}[/], {founds.strip()}')
-        
+        tree = Tree(f'[magenta b] :open_file_folder: {rel_path if rel_path != "." else "./"}[/]')
+
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
         elif isinstance(self.directory, list):
             combined_directories = "\n".join([f'{file_}' for file_ in self.directory])
         else:
             combined_directories = f'{self.directory}'
-            
-        quick_md = f"""[gold1]{combined_directories}[/]"""
-        #iterate threw quick_md without any \n
-        for line in combined_directories.split("\n"):
-            tree.add(f'[gold1]{line}[/] [spring_green4]({round(os.path.getsize(line) / (1024), 2)}kb)[/]')
-        
-        
-        # quick = Panel(renderable=quick_md,
-        #               title="[magenta][b]Files obtained[/]",
-        #               style='bright_blue')
 
-        return Panel(tree, title="[blue][b]Files obtained[/]", style='bright_blue')
-    
+        # iterate through combined_directories without any \n
+        for py_files in combined_directories.split("\n"):
+            tree.add(f'[gold1]{py_files}[/] '
+                     f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
+
+        return Panel(tree, title="[magenta b]Files obtained[/]", style='bright_blue')
+
     def get_line_count(self):
         color1, color2 = self.get_colors()
         line_count = self.stat.line_count()
@@ -528,16 +496,15 @@ class VisualWrapper:
 
         line_count_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", line_count_md)
 
-        line_count_md = f"""[pale_turquoise1]{line_count_md}[/]"""
+        line_count_md = f"""{line_count_md}"""
         line_count_panel = Panel(renderable=line_count_md,
-                                 title="[black]Line Count",
-                                 title_align="left",
-                                 border_style="blue",
-                                 width=30)
+                                 title="[magenta b]Line Count[/]",
+                                 title_align="center",
+                                 border_style="bright_blue")
 
         return line_count_panel
 
-    def get_variable(self, n_variables=3):
+    def get_variable(self):
         n_variables = len(self.directory)
         if int(n_variables) == 10:
             n_variables = 1
@@ -552,22 +519,21 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
 
         variables = self.stat.most_used_variable(n_variables)
-        
-        
+
         if n_variables is None:
             start = "Frequency of variables used"
         else:
-            start = f"Listing top [b u]{n_variables}[/] variables used"
+            start = f"Top [b u]{n_variables}[/] variables used"
 
         # add \n after each element except after last element
         variables_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                   for key, value in variables.items()])
         variables_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", variables_md)
-        variable_md = f"""[pale_turquoise1]{variables_md}[/]"""
+        variable_md = f"""{variables_md}"""
         variable_panel = Panel(renderable=variable_md,
-                               title=f"[black]{start}",
-                               title_align="left",
-                               border_style="blue")
+                               title=f"[magenta b]{start}[/]",
+                               title_align="center",
+                               border_style="bright_blue")
 
         return variable_panel
 
@@ -575,7 +541,6 @@ class VisualWrapper:
         color1, color2 = self.get_colors()
         imports = self.stat.import_count()
 
-        
         all_imports = imports
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
@@ -593,18 +558,16 @@ class VisualWrapper:
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
         import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
 
-        #Get the smaller of the two
+        # Get the smaller of the two
         if len_import_imports < len_from_imports:
             difference = len_from_imports - len_import_imports
             for _ in range(difference):
                 import_md += "\n"
         else:
             difference = len_import_imports - len_from_imports
-            #Add the difference as lines to the import_md
+            # Add the difference as lines to the import_md
             for _ in range(difference):
                 import_md_from += "\n"
-                
-
 
         import_panel = Panel(renderable=import_md,
                              title="[black]Count of 'import' statements",
@@ -618,18 +581,18 @@ class VisualWrapper:
 
         return import_panel, from_import_panel
 
-
     def get_class(self):
         color1, color2 = self.get_colors()
         classes = self.stat.get_classes()
-        # add \n after each element except after last element
-        classes_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in classes.items()])
+
+        classes_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                for key, value in classes.items()])
         classes_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", classes_md)
-        class_md = f"""[pale_turquoise1]{classes_md}[/]"""
-        class_panel = Panel(renderable=class_md,
-                            title="[black]Classes",
+
+        class_panel = Panel(renderable=classes_md,
+                            title="[magenta b]Classes",
                             title_align="left",
-                            border_style="blue")
+                            border_style="bright_blue")
 
         return class_panel
 
@@ -638,91 +601,96 @@ class VisualWrapper:
         func = self.stat.get_func(get_=get_)
         # add \n after each element except after last element
         try:
-            func_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
+            func_md = "\n".join(
+                    [f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
             func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
-            func_md = f"""[pale_turquoise1]{func_md}[/]"""
-        except Exception as e: 
+
+        except Exception as e:
             try:
-            #remove brackets and ' from list
+                # remove brackets and ' from list
                 old_func = func
                 func = ('\n'.join(func))
                 if get_ == 1:
-                    title = '[black]Function' 
+                    title = '[black]Function'
                     width = len(max(old_func))
                 elif get_ == 2:
                     title = '[black]In File'
-                    width = len(max(old_func))+4
+                    width = len(max(old_func)) + 4
                 elif get_ == 3:
                     title = '[black]Line'
-                    width = len(max(old_func))*10
+                    width = len(max(old_func)) * 10
                 else:
                     title = '[black]Times Used'
-                    width = len(max(old_func))*10
+                    width = len(max(old_func)) * 10
                 func_panel = Panel(renderable=func,
-                    title=title,
-                    title_align="left",
-                    border_style="blue",
-                    width=width)
+                                   title=title,
+                                   title_align="left",
+                                   border_style="blue",
+                                   width=width)
                 return func_panel
             except Exception as e:
                 print(e)
                 pass
 
-            
         func_panel = Panel(renderable=func,
-                           title="[black]Functions",
-                           title_align="left",
-                           border_style="blue")
+                           title="[bright_black b]Functions[/]",
+                           title_align="center",
+                           border_style="red")
 
         return func_panel
 
-    def get_statments(self):
+    def get_statements(self):
         color1, color2 = self.get_colors()
-        statements = self.stat.get_if_while_for_with_etc()
-        dict_of_statements = {'if': statements[0], 'while': statements[1], 'for': statements[2], 'with': statements[3], 'try': statements[4], 'Total defined variables': statements[5]}
-        
-        statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in dict_of_statements.items()])
+        statements = self.stat.get_control_statements()
+        statements_dict = {'if': statements[0],
+                           'while': statements[1],
+                           'for': statements[2],
+                           'with': statements[3],
+                           'try': statements[4],
+                           'Total defined variables': statements[5]}
+        # again, I think we shouldn't have the Total defined variable
+
+        statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                   for key, value in statements_dict.items()])
         statements_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", statements_md)
-        statements_md = f"""[pale_turquoise1]{statements_md}[/]"""
+
         statements_panel = Panel(renderable=statements_md,
-                                    title="[black]Statements",
-                                    title_align="left",
-                                    border_style="blue")
-    
+                                 title="[magenta b]Statements[/]",
+                                 title_align="center",
+                                 border_style="bright_blue")
+
         return statements_panel
-        
-                
+
     def get_deco(self):
         color1, color2 = self.get_colors()
-        deco = self.stat.count_decorator()
-        # add \n after each element except after last element
-        deco_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in deco.items()])
-        deco_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", deco_md)
-        deco_md = f"""[pale_turquoise1]{deco_md}[/]"""
-        deco_panel = Panel(renderable=deco_md,
-                           title="[black]Decorators",
-                           title_align="left",
-                           border_style="blue",
-                           width=25)
+        decorators = self.stat.count_decorator()
 
-        return deco_panel
-    
+        decorators_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                   for key, value in decorators.items()])
+        decorators_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", decorators_md)
+
+        decorators_panel = Panel(renderable=decorators_md,
+                                 title="[magenta b]Decorators[/]",
+                                 title_align="center",
+                                 border_style="bright_blue")
+
+        return decorators_panel
+
     def reformat_args(self):
         color1, color2 = self.get_colors()
-        args = self.stat.get_arg()
-        # add \n after each element except after last element
-        args_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in args.items()])
+        _args = self.stat.get_arg()  # _args because args is a reserved keyword
+
+        args_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                             for key, value in _args.items()])
         args_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", args_md)
-        args_md = f"""[pale_turquoise1]{args_md}[/]"""
+
         args_panel = Panel(renderable=args_md,
-                           title="[black]Running with arguments",
-                           title_align="left",
-                           border_style="blue",
-                           width=28
-                           )
+                           title="[magenta b]Running with arguments[/]",
+                           title_align="center",
+                           border_style="bright_blue")
 
         return args_panel
-    
+
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
@@ -730,55 +698,57 @@ class VisualWrapper:
         return color1, color2
 
     def img_render(self, remove_check=False, force_show=True, clear_screen=False):
-        def get_infos():
+        def get_info():
             print(self.get_all())
             if clear_screen:
                 self.clear_term()
-        
+
         if remove_check:
-            get_infos()
-            
-        
+            get_info()
+
         if remove_check:
             with open(f'PyStats.svg ', 'w', encoding='utf-8') as f:
                 f.write(console.export_svg())
-                #open the file on windows
+                # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats.svg')
-                return('Successfully rendered')
+                return 'Successfully rendered'
         if args.imgpath:
-            get_infos()
+            get_info()
             with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
                 f.write(console.export_svg())
-                #open the file on windows
+                # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats {args.imgpath}.svg')
-                return('Successfully rendered')
+                return 'Successfully rendered'
         else:
-            return('[red]img render path not given - no image rendered \nuse --imgpath to specify path')
-        
+            return (
+                '[red]img render path not given - no image rendered \nuse --imgpath to specify path')
 
     def get_all(self, gui=True):
-        # remove \n from self.stat.return_directory_details()
-        return_founds = self.stat.return_directory_details
-        with Status(f'[black]Analyzing code with {return_founds[0]}[/] With files [green]{self.directory}[/]'):
+
+        with Status(f'[bright_black b]Analyzing code'
+                    f'With files [bright_green]{self.directory}[/][/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), info.get_deco(), self.get_statments(), self.reformat_args()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), info.get_deco(),
+                              self.get_statements(), self.reformat_args()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
-            
-            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2)]) #The colours used for this need to change
 
+            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
+                              self.get_func(2)])  # The colours used for this need to change
 
-
-            groups = Group(self.quick_stats(),Rule('[black]At a glance'), group1, self.get_class(),
-                           Rule('[black]Functions', style='yellow'), group3,
-                           Rule('[black]Imports (from count is not working currently)', style='red'),
-                           group2)
+            groups = Group(self.quick_stats(),
+                           Rule('[bright_black b]At a glance[/]', style='red'),
+                           group1, self.get_class(),
+                           Rule('[bright_black b]Functions & Classes[/]', style='red'), group3,
+                           Rule('[bright_black b]Imports (from count is not working currently)',
+                                style='red'), group2)
             if gui:
-                return Panel(renderable=groups, title="[black]All Stats", title_align="center",
-                            width=None, style=self.get_random_color())
+                return Panel(renderable=groups,
+                             title="[bright_black b]All Stats[/]",
+                             title_align="center", style='red')
 
 
 old_info = Stat(working_path)
@@ -786,14 +756,7 @@ info = VisualWrapper(working_path)
 if args.adhd:
     info = VisualWrapper(working_path)
 
-
-
-
 if args.imgpath:
     info.img_render(remove_check=False, force_show=True, clear_screen=True)
 else:
-    print(info.get_all())
-
-
-    
-
+    pystat_print(info.get_all())
