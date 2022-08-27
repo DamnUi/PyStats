@@ -8,9 +8,8 @@ import random
 import re
 import sys
 
-
-from rich.console import Console
 from rich.columns import Columns
+from rich.console import Console
 from rich.console import Group
 from rich.panel import Panel
 from rich.rule import Rule
@@ -61,9 +60,8 @@ if __name__ == "__main__":
                              "big)",
                         default=False)
 
-    parser.add_argument("--imgpath", help="Input Absolute Path to create the img example: \
+    parser.add_argument("-imgpath", help="Input Absolute Path to create the img example: \
                         file_name (dont add anything else)", default=None)
-    
     
 
     # Debug argument to print out the file names
@@ -452,7 +450,11 @@ class Stat:
                         
                     line_num += 1          
         return decorator_list
-    
+
+    def get_arg(self):
+        #Get all commandline args and what value their currently on 
+        arg_list = {'-df': args.df, '-neglect': args.neglect, '-getline': args.getline, '--vars': args.vars, '--adhd': args.adhd, '-imgpath': args.imgpath}
+        return arg_list
                 
 #A dividing rule for me to find where these classes even start and end
 #A dividing rule for me to find where these classes even start and end
@@ -688,6 +690,22 @@ class VisualWrapper:
 
         return deco_panel
     
+    def reformat_args(self):
+        color1, color2 = self.get_colors()
+        args = self.stat.get_arg()
+        # add \n after each element except after last element
+        args_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in args.items()])
+        args_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", args_md)
+        args_md = f"""[pale_turquoise1]{args_md}[/]"""
+        args_panel = Panel(renderable=args_md,
+                           title="[black]Running with arguments",
+                           title_align="left",
+                           border_style="blue",
+                           width=28
+                           )
+
+        return args_panel
+    
     def get_colors(self):
         color1 = self.get_random_color() if self.adhd_mode else 'bright_blue'
         color2 = self.get_random_color() if self.adhd_modev2 else 'bright_green'
@@ -695,7 +713,6 @@ class VisualWrapper:
         return color1, color2
 
     def img_render(self, remove_check=False, force_show=True, clear_screen=False):
-        
         def get_infos():
             print(self.get_all())
             if clear_screen:
@@ -730,11 +747,13 @@ class VisualWrapper:
         with Status(f'[black]Analyzing code with {return_founds[0]}[/] With files [green]{self.directory}[/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statments(), info.get_deco()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), info.get_deco(), self.get_statments(), self.reformat_args()])
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
             
             group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3), self.get_func(2)]) #The colours used for this need to change
+
+
 
             groups = Group(self.quick_stats(),Rule('[black]At a glance'), group1, self.get_class(),
                            Rule('[black]Functions', style='yellow'), group3,
@@ -749,6 +768,9 @@ old_info = Stat(working_path)
 info = VisualWrapper(working_path)
 if args.adhd:
     info = VisualWrapper(working_path)
+
+
+
 
 if args.imgpath:
     info.img_render(remove_check=False, force_show=True, clear_screen=True)
