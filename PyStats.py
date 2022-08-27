@@ -310,11 +310,15 @@ class Stat:
 
         return func_names, most_called_func
 
+
+
     def get_classes(self):
-        class_names = {}            
+        class_names = {}  
+        ls = [] 
+        itr = 0         
         for file_path in self.directory:
             cur_line = 1
-            ls = []
+            
             with open(file_path, encoding="utf-8") as open_file:
                 lines = [line.rstrip("\n") for line in open_file]
                 file = open_file.name
@@ -325,18 +329,18 @@ class Stat:
             with open(file_path, encoding='utf-8') as fml:
                 code = fml.read()
                 node = ast.parse(code)
-                for obj in list(node.body):
-                    if isinstance(obj, ast.ClassDef):
-                        ls.append(len(obj.body))
-            
+                for each in ast.walk(node):
+                    if isinstance(each, ast.ClassDef):
+                        ls.append(len(each.body))
+
             for line in lines:
                 line = line.strip()
                 line = str(line)
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
-                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[0]} Functions']
-                
+                    class_names[class_name] = [line, f"Defined on line: {cur_line}", f'in file: {file}', f'Contains {ls[itr]} Functions']
+                    itr += 1
                 cur_line += 1
 
 
