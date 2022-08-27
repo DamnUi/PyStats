@@ -9,14 +9,6 @@ def is_nested_list(input_list):
     return any(isinstance(x, list) for x in input_list)
 
 
-def AND(cond1, cond2):
-    return cond1 and cond2
-
-
-def OR(cond1, cond2):
-    return cond1 or cond2
-
-
 def list_to_counter_dictionary(list_):
     return dict(Counter(list_))
 
@@ -74,3 +66,53 @@ def is_admin():
         return ctypes.windll.shell32.IsUserAnAdmin()
     except AttributeError:
         return False
+
+
+class TabularView:
+
+    def __init__(self, function_names, file_name, line_no, occurrence):
+        self.function_names = function_names
+        self.file_name = file_name
+        self.line_no = line_no
+        self.occurrence = occurrence
+
+        self.out = ''
+
+    @staticmethod
+    def __color_border(input_string, color='magenta'):
+        return f'[{color}]{input_string}[/]'
+
+    def __equalize_line_numbers(self):
+        # taken from comment by MoTSCHIGGE under https://stackoverflow.com/a/26446766/3212945
+        self.line_no = [f'{line_no:4d}' for line_no in self.line_no]
+        self.occurrence = [f'{occurrence:3d}' for occurrence in self.occurrence]
+
+    def make_table(self, border_color='magenta'):
+        self.__equalize_line_numbers()
+        # determine the max width of file path
+        max_file_name = max([len(x) for x in self.file_name]) + 4
+        max_func_name = max([len(x) for x in self.function_names]) + 4
+
+        bold_red, bright_green, bright_blue, bright_black, magenta = 10, 17, 16, 17, 12
+
+        line_ = f"{self.__color_border('-', color=border_color)}" * (max_func_name + max_file_name
+                                                                     + 18 + 24)
+        _ = f"{self.__color_border('|', color=border_color)}"
+        self.out = line_ + '\n'
+        self.out += '[red b]Function Name[/]'.center(max_func_name + bold_red) + f'{_}'
+        self.out += '[red b]File Name[/]'.center(max_file_name + bold_red + 2) + f'{_}'
+        self.out += '[red b]def @ line #[/]'.center(18 + bold_red) + f'{_}'
+        self.out += '[red b]Occurrences[/]'.center(20 + bold_red) + '\n'
+        self.out += line_ + '\n'
+        self.out += '\n'.join(
+                [f'[bright_green]{h}[/]'.ljust(max_func_name + bright_green) + f'{_}' +
+                 f'[bright_blue]  {i}[/]'.ljust(max_file_name + bright_blue + 2) +
+                 f'{_}' +
+                 f'[bright_black]{j}[/]'.center(18 + bright_black) + f'{_}' +
+                 f'{k if int(k) > 0 else "[red]defined only[/]"}'.center([20 if int(k) > 0
+                                                                          else 28][0])
+                 for h, i, j, k in zip(self.function_names, self.file_name,
+                                       self.line_no, self.occurrence)]
+                )
+
+        return self.out

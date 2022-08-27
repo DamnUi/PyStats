@@ -605,45 +605,19 @@ class VisualWrapper:
 
         return class_panel
 
-    def get_func(self, get_=None):
-        color1, color2 = self.get_colors()
-        func = self.stat.get_func(get_=get_)
-        # add \n after each element except after last element
-        try:
-            func_md = "\n".join(
-                    [f"[{color2}]{key}[/]: [{color1}]{value}[/]" for key, value in func.items()])
-            func_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", func_md)
+    def get_func(self):
+        func = self.stat.get_func()
 
-        except Exception as e:
-            try:
-                old_func = func
-                func = ('\n'.join(func))
-                if get_ == 1:
-                    title = '[black]Function'
-                    width = len(max(old_func))
-                elif get_ == 2:
-                    title = '[black]In File'
-                    width = len(max(old_func)) + 4
-                elif get_ == 3:
-                    title = '[black]Line'
-                    width = len(max(old_func)) * 10
-                else:
-                    title = '[black]Times Used'
-                    width = len(max(old_func)) * 10
-                func_panel = Panel(renderable=func,
-                                   title=title,
-                                   title_align="left",
-                                   border_style="blue",
-                                   width=width)
-                return func_panel
-            except Exception as e:
-                print(e)
-                pass
+        file_name = [v[2] for v in func.values()]
+        line_no = [int(v[3]) for v in func.values()]
+        occur = [int(v[4]) for v in func.values()]
 
-        func_panel = Panel(renderable=func,
-                           title="[bright_black b]Functions[/]",
-                           title_align="center",
-                           border_style="red")
+        table = _utils.TabularView(list(func.keys()), file_name, line_no, occur).make_table()
+
+        func_panel = Panel(renderable=table,
+                           title="[magenta b]Functions",
+                           title_align='center',
+                           border_style="bright_blue")
 
         return func_panel
 
@@ -744,8 +718,7 @@ class VisualWrapper:
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
 
-            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
-                              self.get_func(2)])  # The colours used for this need to change
+            group3 = Columns([self.get_func()])
 
             groups = Group(self.quick_stats(),
                            Rule('[bright_black b]At a glance[/]', style='red'),
