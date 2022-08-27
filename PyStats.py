@@ -8,6 +8,11 @@ import random
 import re
 import sys
 
+from rich.filesize import decimal
+from rich.markup import escape
+from rich.text import Text
+from rich.tree import Tree
+
 from rich.columns import Columns
 from rich.console import Console
 from rich.console import Group
@@ -490,8 +495,11 @@ class VisualWrapper:
         return random.choice(good_colours)
 
     def quick_stats(self):
+        c_dir  = os.getcwd()
         founds = self.stat.return_directory_details[0]
 
+        tree = Tree(f'[bold magenta]:open_file_folder: {c_dir}[/], {founds.strip()}')
+        
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
         elif isinstance(self.directory, list):
@@ -499,13 +507,18 @@ class VisualWrapper:
         else:
             combined_directories = f'{self.directory}'
             
-        quick_md = f"""{founds}[gold1]{combined_directories}[/]"""
-        quick = Panel(renderable=quick_md,
-                      title="[magenta][b]Files obtained[/]",
-                      style='bright_blue')
+        quick_md = f"""[gold1]{combined_directories}[/]"""
+        #iterate threw quick_md without any \n
+        for line in combined_directories.split("\n"):
+            tree.add(f'[gold1]{line}[/] [spring_green4]({round(os.path.getsize(line) / (1024), 2)}kb)[/]')
+        
+        
+        # quick = Panel(renderable=quick_md,
+        #               title="[magenta][b]Files obtained[/]",
+        #               style='bright_blue')
 
-        return quick
-
+        return Panel(tree, title="[blue][b]Files obtained[/]", style='bright_blue')
+    
     def get_line_count(self):
         color1, color2 = self.get_colors()
         line_count = self.stat.line_count()
