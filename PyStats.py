@@ -1,20 +1,25 @@
 import argparse
+import ast
 import ctypes
 import itertools
+import math
 import os
 import random
 import re
 import sys
-import ast
-import math
 
-from rich import print
+
+from rich.console import Console
 from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.status import Status
 from rich.traceback import install as install_traceback
+
+console = Console(record=True)
+print = console.print
+
 
 
 import errors as _errors
@@ -56,9 +61,15 @@ if __name__ == "__main__":
                              "big)",
                         default=False)
 
+    parser.add_argument("--imgpath", help="Input Absolute Path to create the img example: \
+                        file_name (dont add anything else)", default=None)
+    
+    
+
     # Debug argument to print out the file names
     path = parser.parse_args()
     args = parser.parse_args()
+
 
     if args.vars is None:
         args.vars = False
@@ -238,10 +249,6 @@ class Stat:
         #Subtract 1 from each element in most_used_variable
         most_used_variable = {key: value - 1 for key, value in most_used_variable.items()} #It shows 1 extra var so
 
-
-
-
-
         if n_variables is not None:
             return dict(list(most_used_variable.items())[:n_variables])
         else:
@@ -418,9 +425,9 @@ class Stat:
                     if isinstance(thing, ast.Assign):
                         varibles.append(thing)
         
-        try: 
+        try: #Essentially the try list is somewhat wrong this small piece of code is to fix it, it rounds up the given number of times the varible is used
             tl = int(math.ceil(len(try_list)/2))
-        except Exception as e:
+        except Exception:
             tl = len(try_list)
                         
         return len(if_list), len(while_list), len(for_or_aysyncfor_list), len(with_list), len(try_list), len(varibles)
@@ -459,6 +466,13 @@ class VisualWrapper:
         self.stat = Stat(self.directory)
         self.adhd_mode = adhd_mode
         self.adhd_modev2 = extra_adhd
+
+    @staticmethod
+    def clear_term():
+        if os_name == "nt":
+            os.system("cls")
+        else:
+            os.system("clear")
 
     @staticmethod
     def get_random_color():
@@ -680,6 +694,36 @@ class VisualWrapper:
 
         return color1, color2
 
+    def img_render(self, remove_check=False, force_show=True, clear_screen=False):
+        
+        def get_infos():
+            print(self.get_all())
+            if clear_screen:
+                self.clear_term()
+        
+        if remove_check:
+            get_infos()
+            
+        
+        if remove_check:
+            with open(f'PyStats.svg ', 'w', encoding='utf-8') as f:
+                f.write(console.export_svg())
+                #open the file on windows
+                if force_show:
+                    os.startfile(f'PyStats.svg')
+                return('Successfully rendered')
+        if args.imgpath:
+            get_infos()
+            with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
+                f.write(console.export_svg())
+                #open the file on windows
+                if force_show:
+                    os.startfile(f'PyStats {args.imgpath}.svg')
+                return('Successfully rendered')
+        else:
+            return('[red]img render path not given - no image rendered \nuse --imgpath to specify path')
+        
+
     def get_all(self, gui=True):
         # remove \n from self.stat.return_directory_details()
         return_founds = self.stat.return_directory_details
@@ -706,4 +750,11 @@ info = VisualWrapper(working_path)
 if args.adhd:
     info = VisualWrapper(working_path)
 
-print(info.get_all())
+if args.imgpath:
+    info.img_render(remove_check=False, force_show=True, clear_screen=True)
+else:
+    print(info.get_all())
+
+
+    
+
