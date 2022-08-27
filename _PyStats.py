@@ -4,7 +4,6 @@ import argparse
 import ast
 import ctypes
 import itertools
-import math
 import os
 import random
 import re
@@ -230,9 +229,8 @@ class Stat:
         most_used_variable = {key: value - 1 for key, value in
                               most_used_variable.items()}  # It shows 1 extra var so
 
-        #total number of defined vars
+        # total number of defined vars
         total_vars = len(most_used_variable.keys())
-        
 
         if n_variables is not None:
             return dict(list(most_used_variable.items())[:n_variables])
@@ -315,18 +313,6 @@ class Stat:
                 for each in ast.walk(node):
                     if isinstance(each, ast.ClassDef):
                         ls.append(each.body)
-                        
-                #My original solution (sucks)
-                #         if isinstance(each, ast.ClassDef):
-                #         for obj in each.body:
-                #             if isinstance(obj, ast.Pass):
-                #                 pass
-                #             elif isinstance(obj, ast.FunctionDef):
-                #                 ls.append(obj)
-                                
-                # ls2.append(len(ls))
-
-                        
 
             for line in lines:
                 line = line.strip()
@@ -334,15 +320,17 @@ class Stat:
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
                     class_name = gex.match(line).group(1)
-                    
+
                     if isinstance(ls[itr][0], ast.Pass):
                         ls[itr].remove(ls[itr][0])
 
-                    class_names[class_name] = [line, f"Defined on line: {cur_line}",
-                                               f'in file: {file}', f'Contains {len(ls[itr])} Functions']
+                    class_names[class_name] = [f'{line}, '
+                                               f'Defined on line: {cur_line}, '
+                                               f'in file: {file} '
+                                               f'Contains {len(ls[itr])} functions.'][0]
+
                     itr += 1
                 cur_line += 1
-                
 
         return class_names
 
@@ -426,10 +414,6 @@ class Stat:
         # except Exception:
         #     tl = len(try_list)  # why not use it if you've defined it here?
 
-        
-            
-        
-
         return (len(if_list), len(while_list), len(for_or_async_for_list), len(with_list),
                 len(try_list), len(mvars.keys()))
 
@@ -495,7 +479,9 @@ class VisualWrapper:
         current_directory = os.getcwd()
         rel_path = os.path.relpath(current_directory)
 
-        tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/]', guide_style='red') # guide_style changes the colour of the lines that go to the files
+        tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/]',
+                    guide_style='red')
+        # guide_style changes the colour of the lines that go to the files
 
         if _utils.is_nested_list(self.directory):
             combined_directories = "\n".join(list(itertools.chain.from_iterable(self.directory)))
@@ -553,8 +539,8 @@ class VisualWrapper:
         variables_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                   for key, value in variables.items()])
         variables_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", variables_md)
-        variable_md = f"""{variables_md}"""
-        variable_panel = Panel(renderable=variable_md,
+
+        variable_panel = Panel(renderable=variables_md,
                                title=f"[magenta b]{start}[/]",
                                title_align="center",
                                border_style="bright_blue")
@@ -569,10 +555,10 @@ class VisualWrapper:
         imports = {k: v for k, v in imports.items() if k.startswith("import")}
         len_import_imports = len(imports)
         # add \n after each element except after last element
-        imports_md = "\n".join([f"[{color2}]{k}[/]: [{color1}]{v}[/]" for k, v in imports.items()])
+        imports_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                for key, value in imports.items()])
 
         imports_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md)
-        import_md = f"""[pale_turquoise1]{imports_md}[/]"""
 
         imports_from = {k: v for k, v in all_imports.items() if k.startswith("from")}
         len_from_imports = len(imports_from)
@@ -580,25 +566,24 @@ class VisualWrapper:
         imports_md_from = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                      for key, value in imports_from.items()])
         imports_md_from = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", imports_md_from)
-        import_md_from = f"""[pale_turquoise1]{imports_md_from}[/]"""
 
         # Get the smaller of the two
         if len_import_imports < len_from_imports:
             difference = len_from_imports - len_import_imports
             for _ in range(difference):
-                import_md += "\n"
+                imports_md += "\n"
         else:
             difference = len_import_imports - len_from_imports
             # Add the difference as lines to the import_md
             for _ in range(difference):
-                import_md_from += "\n"
+                imports_md_from += "\n"
 
-        import_panel = Panel(renderable=import_md,
+        import_panel = Panel(renderable=imports_md,
                              title="[black]Count of 'import' statements",
                              title_align="left",
                              border_style="blue", )
 
-        from_import_panel = Panel(renderable=import_md_from,
+        from_import_panel = Panel(renderable=imports_md_from,
                                   title="[black]Count of 'from' statements",
                                   title_align="left",
                                   border_style="blue", )
@@ -670,7 +655,7 @@ class VisualWrapper:
                            'For': statements[2],
                            'With': statements[3],
                            'Try': statements[4],
-                           'Total Defined Variables': statements[5]}
+                           'Total defined variables': statements[5]}
         # again, I think we shouldn't have the Total defined variable
 
         statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
