@@ -5,6 +5,7 @@ import ast
 import ctypes
 import itertools
 import os
+from pstats import Stats
 import random
 import re
 import sys
@@ -24,7 +25,7 @@ import utilities as _utils
 # could've imported from PyStats but that'd create a circular import, should be avoided
 console = Console(record=True)
 install_traceback(show_locals=False)
-
+print = console.print
 os_name = os.name
 
 if os_name == "nt":
@@ -458,6 +459,8 @@ class VisualWrapper:
         # what about the adhd mode?
         self.adhd_mode = adhd_mode
         self.adhd_modev2 = extra_adhd
+        
+        self.full_width = 0
 
     @staticmethod
     def clear_term():
@@ -635,10 +638,12 @@ class VisualWrapper:
                                    title_align="left",
                                    border_style="blue",
                                    width=width)
+                self.full_width += width
                 return func_panel
             except Exception as e:
                 print(e)
                 pass
+                
 
         func_panel = Panel(renderable=func,
                            title="[bright_black b]Functions[/]",
@@ -720,7 +725,7 @@ class VisualWrapper:
                 # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats.svg')
-                return 'Successfully rendered'
+                return True
         if args.imgpath:
             get_info()
             with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
@@ -728,7 +733,7 @@ class VisualWrapper:
                 # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats {args.imgpath}.svg')
-                return 'Successfully rendered'
+                return True
         else:
             return '[red]img render path not given - no image rendered \n' \
                    'Use the option --imgpath to specify a path[/]'
@@ -750,10 +755,11 @@ class VisualWrapper:
             groups = Group(self.quick_stats(),
                            Rule('[bright_black b]At a glance[/]', style='red'),
                            group1, self.get_class(),
-                           Rule('[bright_black b]Functions & Classes[/]', style='red'), group3,
+                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style='bright_green', width=self.full_width+7),
                            Rule('[bright_black b]Imports (from count is not working currently)',
                                 style='red'), group2)
             if gui:
                 return Panel(renderable=groups,
                              title="[bright_black b]All Stats[/]",
                              title_align="center", style='red')
+                
