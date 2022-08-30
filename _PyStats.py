@@ -28,11 +28,33 @@ install_traceback(show_locals=False)
 print = console.print
 os_name = os.name
 
+
+def find(name, path): #Expecting there to not be any  _utils in the directory
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+        
+if __name__ == '__main__':
+    print('[red]PyStats is a python module that allows you to easily view your python statistics, Your getting all this info because your running this file directly, you should use the PyStats wrapper instead and use it in other python files[/]')
+    print('[yellow]Looking for PyStats.py wrapper in the current directory')        
+    if find('PyStats.py', '.'):
+        print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
+        os.system('Python PyStats.py')
+        
+    else:
+        print('[red]Could not find PyStats.py wrapper in the current directory, Please install fully instead[/]')
+        quit()
+
+    
+
+
 if os_name == "nt":
     # we only want this to be executed if the operating system is Windows
     # moved is_admin function to utilities.py
     if _utils.is_admin():
-        print("Running the script with ADMIN privileges.")
+        if __name__ == '__main__':
+            print("[yellow]Running the script with ADMIN privileges.")
+        pass
     else:
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv),
                                             None, 1)
@@ -83,7 +105,8 @@ if args.df is None:
     working_path.sort()
 
     # Automatic mode
-    print("Currently in Automatic mode this selects all files only in your current directory "
+    if __name__ == '__main__':
+        print("[yellow]Currently in Automatic mode this selects all files only in your current directory "
           "ending with py extension")
 else:
     # Determine if it's a directory or file
@@ -725,7 +748,7 @@ class VisualWrapper:
                 # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats.svg')
-                return True
+                return [True]
         if args.imgpath:
             get_info()
             with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
@@ -733,15 +756,13 @@ class VisualWrapper:
                 # open the file on Windows
                 if force_show:
                     os.startfile(f'PyStats {args.imgpath}.svg')
-                return True
+                return [True]
         else:
-            return '[red]img render path not given - no image rendered \n' \
+            return False, '[red]img render path not given - no image rendered \n' \
                    'Use the option --imgpath to specify a path[/]'
 
     def get_all(self, gui=True):
-
-        with Status(f'[bright_black b]Analyzing code'
-                    f'With files [bright_green]{self.directory}[/][/]'):
+        with Status(f'[bright_black b]Analyzing code' f' with files [bright_green]{self.directory}[/][/]'):
             imp_count = self.get_import_count()
 
             group1 = Columns([self.get_line_count(), self.get_variable(), self.get_deco(),
@@ -755,7 +776,7 @@ class VisualWrapper:
             groups = Group(self.quick_stats(),
                            Rule('[bright_black b]At a glance[/]', style='red'),
                            group1, self.get_class(),
-                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style='bright_green', width=self.full_width+7),
+                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style=self.get_colors()[0], width=self.full_width+7),
                            Rule('[bright_black b]Imports (from count is not working currently)',
                                 style='red'), group2)
             if gui:
