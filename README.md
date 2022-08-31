@@ -7,7 +7,7 @@ Currently the most updated branch is scrp_dev2
 ## Quick Start
 Currently not on pypi so none of this is going to work YET
 ```py
-pip install PyStat?
+pip install PypStat
 ```
 
 
