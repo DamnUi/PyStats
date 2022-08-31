@@ -784,3 +784,4 @@ class VisualWrapper:
                              title="[bright_black b]All Stats[/]",
                              title_align="center", style='red')
                 
+
