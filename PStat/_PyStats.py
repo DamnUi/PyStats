@@ -18,8 +18,14 @@ from rich.status import Status
 from rich.traceback import install as install_traceback
 from rich.tree import Tree
 
-import errors as _errors
-import utilities as _utils
+# import errors as _errors
+# import utilities as _utils
+try:
+    from PStat import errors as _errors
+    from PStat import utilities as _utils
+except ImportError:
+    import errors as _errors
+    import utilities as _utils
 
 # could've imported from PyStats but that'd create a circular import, should be avoided
 console = Console(record=True)
@@ -38,7 +44,7 @@ if __name__ == '__main__':
     print('[yellow]Looking for PyStats.py wrapper in the current directory')        
     if find('PyStats.py', '.'):
         print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
-        os.system('Python PyStats.py')
+        os.system('Python __init__.py')
         
     else:
         print('[red]Could not find PyStats.py wrapper in the current directory, Please install fully instead[/]')

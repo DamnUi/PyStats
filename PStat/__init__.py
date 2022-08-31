@@ -1,18 +1,16 @@
+from ast import main
 from rich.console import Console
-import time
 
+def Main():
+    console = Console(record=True)
+    try:    
+        import PStat._PyStats as _PyStats
+    except ImportError:
+        import _PyStats
+    # Changed it to pystat_print because it wouldn't let me print other things that I wanted using
+    # the standard print statement
+    pystat_print = console.print
 
-console = Console(record=True)
-try:    
-    import _PyStats
-except ImportError:
-    console.print('[red] PyStats is not installed. Please install it with')#One day I will make it work with pip3.
-    exit()
-# Changed it to pystat_print because it wouldn't let me print other things that I wanted using
-# the standard print statement
-pystat_print = console.print
-
-if __name__ == "__main__":
     info = _PyStats.VisualWrapper(_PyStats.working_path)
     if info.img_render(remove_check=False, force_show=True, clear_screen=True)[0]: #has a built in if statement checker so no need to re define also i wanted it to be my default render mode so i made it this way
         quit()
@@ -22,5 +20,7 @@ if __name__ == "__main__":
     else:
 
         pystat_print(info.get_all())
-        
-    
+
+
+
+Main()
