@@ -1,9 +1,17 @@
-# PyStats
+![PStats](https://user-images.githubusercontent.com/81849260/185852278-b154d1db-b7a4-412d-bc5d-cd17b1ae754f.png)
+## Intro
+PyStats scrapes your Python files for any data it can find and presents it intuitively.
 
-Project in semi-beta 
+This Branch is currently the most updated afaik
 
-Things to do currently:
-Add a dashboard to view all info in
-Possible to make the dashboard in flask?
+## Quick Start
+Currently not on pypi so none of this is going to work YET
+```py
+pip install PyStat?
+```
 
-Currently, `import_count` function is not working and `variable_count` is kind of messed up also  
+
+![carbon](https://user-images.githubusercontent.com/81849260/185844371-d31146a5-27eb-40d6-a433-d7ae034bb3f5.png)
+
+
+Special Thanks to [Astro](https://github.com/AstrophysicsAndPython)
