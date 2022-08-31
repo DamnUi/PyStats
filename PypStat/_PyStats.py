@@ -21,8 +21,8 @@ from rich.tree import Tree
 # import errors as _errors
 # import utilities as _utils
 try:
-    from PStat import errors as _errors
-    from PStat import utilities as _utils
+    from PypStat import errors as _errors
+    from PypStat import utilities as _utils
 except ImportError:
     import errors as _errors
     import utilities as _utils
@@ -42,7 +42,7 @@ def find(name, path): #Expecting there to not be any  _utils in the directory
 if __name__ == '__main__':
     print('[red]PyStats is a python module that allows you to easily view your python statistics, Your getting all this info because your running this file directly, you should use the PyStats wrapper instead and use it in other python files[/]')
     print('[yellow]Looking for PyStats.py wrapper in the current directory')        
-    if find('PyStats.py', '.'):
+    if find('__init__.py', '.'):
         print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
         os.system('Python __init__.py')
         

@@ -4,7 +4,7 @@ from rich.console import Console
 def Main():
     console = Console(record=True)
     try:    
-        import PStat._PyStats as _PyStats
+        import PypStat._PyStats as _PyStats
     except ImportError:
         import _PyStats
     # Changed it to pystat_print because it wouldn't let me print other things that I wanted using

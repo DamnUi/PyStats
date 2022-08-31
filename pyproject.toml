@@ -4,24 +4,29 @@ build-backend = "setuptools.build_meta"
 
 
 [project.scripts]
-PStat = "PStat:Main"
+PypStat = "PypStat:Main" 
+PypStats = "PypStat:Main"
+PyStats = "PypStat:Main"
 
 [project]
-name = "PStat"
-version = "2.0"
+name = "PypStat"
+version = "1.2"
 authors = [
   { name="Nonja N Astro", email="anantakshg@gmail.com" },
 ]
 description = "PyStats is a python module that allows you to easily view your python statistics, Using your dataset"
 readme = "README.md"
-license = { file="LICENSE" }
+license = {file="LICENSE"}
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "rich>=12.0.0"
+]
 
 [project.urls]
-"Homepage" = "https://github.com/DamnUi/PyStats/tree/Branch-before-major10"
+"Homepage" = "https://github.com/DamnUi/PyStats/"
 "Bug Tracker" = "https://github.com/DamnUi/PyStats/issues"
