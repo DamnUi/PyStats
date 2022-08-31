@@ -5,7 +5,6 @@ import ast
 import ctypes
 import itertools
 import os
-from pstats import Stats
 import random
 import re
 import sys
@@ -90,24 +89,29 @@ args = parser.parse_args()
 if args.vars is None:
     args.vars = False
 if args.df is None:
-    # using different separators for windows and linux
-    separator = "\\" if os_name == "nt" else "/"
-
-    # get file paths
-    working_path = [f"{os.getcwd()}{separator}{py_file}"
-                    for py_file in os.listdir(os.getcwd())
-                    if os.path.isfile(py_file) and py_file.endswith(".py")]
-
-    # get relative paths (full paths are too big)
-    working_path = [os.path.relpath(path) for path in working_path]
-
-    # sort
-    working_path.sort()
-
-    # Automatic mode
     if __name__ == '__main__':
         print("[yellow]Currently in Automatic mode this selects all files only in your current directory "
           "ending with py extension")
+        
+    working_path = []
+    for root, dirs, files in os.walk(os.getcwd()):
+        for file in files:
+            if(file.endswith(".py")):
+                working_path.append(os.path.join(root,file))
+    
+    for file in working_path:
+        try:
+            compile(open(file).read(), file, 'exec')
+        except Exception as e:
+            print(f"[red]Syntax Error in {file    }, Removing[/], {e}")
+            #remove it
+            working_path.remove(file)
+            continue
+
+    # Automatic mode
+    if __name__ == '__main__':
+        print("[green]Found {} files in your current directory[/]".format(len(working_path)))
+    
 else:
     # Determine if it's a directory or file
     if os.path.isdir(path.df):
@@ -233,8 +237,13 @@ class Stat:
                     else:
                         count = sum(1 for _ in open_file if _.rstrip("\n"))
 
-                    file_path = (file_path.split("../")[1] if ".." in file_path else file_path)
+                    try:
+                        file_path = (file_path.split("../")[1] if ".." in file_path else file_path)
+                    except IndexError:
+                        file_path = file_path.split("/")[-1]
+                        
                     line_count[file_path] = count
+                    
         else:
             with open(self.directory[0], encoding="utf8") as open_file:
                 file_path = os.path.relpath(self.directory[0])
@@ -784,4 +793,3 @@ class VisualWrapper:
                              title="[bright_black b]All Stats[/]",
                              title_align="center", style='red')
                 
-

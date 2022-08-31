@@ -1,5 +1,5 @@
 from rich.console import Console
-
+import time
 
 
 console = Console(record=True)
@@ -22,6 +22,5 @@ if __name__ == "__main__":
     else:
 
         pystat_print(info.get_all())
-
-    
+        
     
