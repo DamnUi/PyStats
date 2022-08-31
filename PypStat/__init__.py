@@ -1,4 +1,3 @@
-from ast import main
 from rich.console import Console
 
 def Main():
