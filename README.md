@@ -15,7 +15,7 @@ pip install PypStat
 
 
 ## Example
-![image](https://user-images.githubusercontent.com/81849260/187730977-c7c7b372-775c-4a2d-9668-9a6d07b4bec4.png)
+![This is rendered completely in terminal](https://user-images.githubusercontent.com/81849260/187730977-c7c7b372-775c-4a2d-9668-9a6d07b4bec4.png)
 
 
 Special Thanks to [Astro](https://github.com/AstrophysicsAndPython)
