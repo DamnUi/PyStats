@@ -14,7 +14,8 @@ pip install PypStat
 ![carbon](https://user-images.githubusercontent.com/81849260/185844371-d31146a5-27eb-40d6-a433-d7ae034bb3f5.png)
 
 
-## Example
+## Example 
+- This is rendered completely in terminal
 ![This is rendered completely in terminal](https://user-images.githubusercontent.com/81849260/187730977-c7c7b372-775c-4a2d-9668-9a6d07b4bec4.png)
 
 
