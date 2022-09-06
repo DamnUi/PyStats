@@ -2,7 +2,7 @@
 ## Intro
 PyStats scrapes your Python files for any data it can find and presents it intuitively.
 
-Currently the most updated branch is scrp_dev2
+Currently the most updated branch is scrp_dev2 or major before 10
 
 ## Quick Start
 Its on pypi
