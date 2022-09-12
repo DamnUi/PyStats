@@ -103,7 +103,7 @@ if args.df is None:
         try:
             compile(open(file).read(), file, 'exec')
         except Exception as e:
-            print(f"[red]Syntax Error in {file    }, Removing[/], {e}")
+            print(f"[red]Syntax Error in {file}, Removing[/], {e}")
             #remove it
             working_path.remove(file)
             continue
@@ -486,12 +486,19 @@ class Stat:
 class VisualWrapper:
     def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
         self.directory = directory
+        
+        #Fix when self.directory has only 1 file
+        if type(self.directory) == str:
+            self.directory = [self.directory]
+                
+
+
+
         self.stat = Stat(self.directory)
 
         # what about the adhd mode?
         self.adhd_mode = adhd_mode
         self.adhd_modev2 = extra_adhd
-        
         self.full_width = 0
 
     @staticmethod
@@ -512,9 +519,7 @@ class VisualWrapper:
 
     def quick_stats(self):
         current_directory = os.getcwd()
-        rel_path = os.path.relpath(current_directory)
-
-        tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/]',
+        tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/] [spring_green4]({len(self.directory)} {"File" if len(self.directory) == 1 else "Files"})[/]',
                     guide_style='red')
         # guide_style changes the colour of the lines that go to the files
 
@@ -524,11 +529,15 @@ class VisualWrapper:
             combined_directories = "\n".join([f'{file_}' for file_ in self.directory])
         else:
             combined_directories = f'{self.directory}'
+    
+        #Sort combined_directories by file size
+        combined_directories = combined_directories.split("\n") 
+        combined_directories.sort(key=lambda x: os.path.getsize(x), reverse=True) #Sorts from biggest to smallest looks cleaner imo
+        combined_directories = "\n".join(combined_directories) 
 
-        # iterate through combined_directories without any \n
         for py_files in combined_directories.split("\n"):
-            tree.add(f'[gold1]{py_files}[/] '
-                     f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
+            print()
+            tree.add(f'[gold1]{py_files}[/] 'f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
 
         return Panel(tree, title="[magenta b]Files obtained[/]", style='bright_blue')
 
@@ -551,7 +560,7 @@ class VisualWrapper:
 
     def get_variable(self):
         n_variables = len(self.directory)
-        if int(n_variables) == 10:
+        if int(n_variables) > 10:
             n_variables = 1
         if args.vars:
             n_variables = int(args.vars)
@@ -652,13 +661,16 @@ class VisualWrapper:
         except Exception as e:
             try:
                 old_func = func
+                
                 func = ('\n'.join(func))
                 if get_ == 1:
                     title = '[black]Function'
-                    width = len(max(old_func))
+                    width = len(max(old_func, key=len)) - 5 #All this fixes are absolute trash tbh
                 elif get_ == 2:
                     title = '[black]In File'
-                    width = len(max(old_func)) + 4
+                    #iterate threw old_func, get the length of the longest string, and add 1
+                    width = len(max(old_func, key=len)) + 4 #This takes the largest string and adds 4 to to get pixel perfect
+                    #width = len(max(old_func)) + 4 #Need to fix this
                 elif get_ == 3:
                     title = '[black]Line'
                     width = len(max(old_func)) * 10
@@ -670,7 +682,7 @@ class VisualWrapper:
                                    title_align="left",
                                    border_style="blue",
                                    width=width)
-                self.full_width += width
+                self.full_width += width #the panel wrapper in get all uses this
                 return func_panel
             except Exception as e:
                 print(e)
@@ -758,6 +770,8 @@ class VisualWrapper:
                 if force_show:
                     os.startfile(f'PyStats.svg')
                 return [True]
+            
+            
         if args.imgpath:
             get_info()
             with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
@@ -771,21 +785,21 @@ class VisualWrapper:
                    'Use the option --imgpath to specify a path[/]'
 
     def get_all(self, gui=True):
-        with Status(f'[bright_black b]Analyzing code' f' with files [bright_green]{self.directory}[/][/]'):
+        with Status(f'[black]Getting statistics on [green]{len(self.directory)}[/] {"File" if len(self.directory) == 1 else "Files"}.[/]'):
             imp_count = self.get_import_count()
 
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_deco(),
-                              self.get_statements(), self.reformat_args()])
+            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statements(),
+                              self.get_deco()]) #self.reformat_args() to get args to debug
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
 
             group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
                               self.get_func(2)])  # The colours used for this need to change
 
-            groups = Group(self.quick_stats(),
+            groups = Group(self.quick_stats(),  
                            Rule('[bright_black b]At a glance[/]', style='red'),
                            group1, self.get_class(),
-                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style=self.get_colors()[0], width=self.full_width+7),
+                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style=self.get_colors()[0], width=self.full_width+7), #To remove the box around Functions & Classes remove panel wrapper
                            Rule('[bright_black b]Imports (from count is not working currently)',
                                 style='red'), group2)
             if gui:
