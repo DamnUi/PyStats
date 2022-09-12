@@ -38,8 +38,8 @@ if __name__ == '__main__':
     print('[yellow]Looking for PyStats.py wrapper in the current directory')        
     if find('PyStats.py', '.'):
         print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
+        os.chdir(os.path.dirname(find('PyStats.py', '.')))
         os.system('Python PyStats.py')
-        
     else:
         print('[red]Could not find PyStats.py wrapper in the current directory, Please install fully instead[/]')
         quit()

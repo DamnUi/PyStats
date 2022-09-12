@@ -1,6 +1,5 @@
 from rich.console import Console
-import time
-
+import os
 
 console = Console(record=True)
 try:    
@@ -20,6 +19,8 @@ if __name__ == "__main__":
     if _PyStats.args.adhd:
         info = _PyStats.VisualWrapper(_PyStats.working_path)
     else:
-
         pystat_print(info.get_all(True))
         
+def callable():
+    # This is a callable function that can be used in other scripts
+    return _PyStats.VisualWrapper(_PyStats.working_path)
