@@ -9,6 +9,8 @@ import random
 import re
 import sys
 
+import termcharts # In Dev
+
 from rich.columns import Columns
 from rich.console import Console
 from rich.console import Group
@@ -536,7 +538,7 @@ class VisualWrapper:
         combined_directories = "\n".join(combined_directories) 
 
         for py_files in combined_directories.split("\n"):
-            print()
+            #print() OFC THIS IS THE LINE I LEAVE HERE BY MISTAKE TRYNA FIRGURE IT OUT OH MY GODDDDD
             tree.add(f'[gold1]{py_files}[/] 'f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
 
         return Panel(tree, title="[magenta b]Files obtained[/]", style='bright_blue')
@@ -705,6 +707,8 @@ class VisualWrapper:
                            'With': statements[3],
                            'Try': statements[4],
                            'Total defined variables': statements[5]}
+        
+        #return Panel.fit(termcharts.doughnut(statements_dict, title='Statments', rich=True)) #Term charts 
         # again, I think we shouldn't have the Total defined variable
 
         statements_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
