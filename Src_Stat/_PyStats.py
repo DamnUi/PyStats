@@ -493,7 +493,7 @@ class VisualWrapper:
         if type(self.directory) == str:
             self.directory = [self.directory]
                 
-
+        self.f_height_glace = 0 # Naming really is hard
 
 
         self.stat = Stat(self.directory)
@@ -518,7 +518,12 @@ class VisualWrapper:
                         "gold1",
                         "medium_purple2"]
         return random.choice(good_colours)
-
+    
+    @staticmethod
+    def assign_full_height(values):
+        #Get biggest value from values
+        max_value = max(values)        
+    
     def quick_stats(self):
         current_directory = os.getcwd()
         tree = Tree(f'[magenta b]:open_file_folder: {current_directory}[/] [spring_green4]({len(self.directory)} {"File" if len(self.directory) == 1 else "Files"})[/]',
@@ -543,7 +548,7 @@ class VisualWrapper:
 
         return Panel(tree, title="[magenta b]Files obtained[/]", style='bright_blue')
 
-    def get_line_count(self):
+    def get_line_count(self, _height=None, give_height=False):
         color1, color2 = self.get_colors()
         line_count = self.stat.line_count()
 
@@ -556,11 +561,17 @@ class VisualWrapper:
         line_count_panel = Panel(renderable=line_count_md,
                                  title="[magenta b]Line Count[/]",
                                  title_align="center",
-                                 border_style="bright_blue")
+                                 border_style="bright_blue",
+                                 height=_height)
 
+
+        possible_height = (len(line_count_md.split("\n")))
+        if give_height:
+            return possible_height
+        
         return line_count_panel
 
-    def get_variable(self):
+    def get_variable(self, _height=None, give_height=False):
         n_variables = len(self.directory)
         if int(n_variables) > 10:
             n_variables = 1
@@ -586,10 +597,18 @@ class VisualWrapper:
                                   for key, value in variables.items()])
         variables_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", variables_md)
 
+        # height
+        possible_height = (len(variables_md.split("\n")))
+
+
         variable_panel = Panel(renderable=variables_md,
                                title=f"[magenta b]{start}[/]",
                                title_align="center",
-                               border_style="bright_blue")
+                               border_style="bright_blue",
+                               height=_height)
+
+        if give_height:
+            return possible_height
 
         return variable_panel
 
@@ -698,7 +717,7 @@ class VisualWrapper:
 
         return func_panel
 
-    def get_statements(self):
+    def get_statements(self, _height=None, give_height=False):
         color1, color2 = self.get_colors()
         statements = self.stat.get_control_statements()
         statements_dict = {'If': statements[0],
@@ -707,6 +726,8 @@ class VisualWrapper:
                            'With': statements[3],
                            'Try': statements[4],
                            'Total defined variables': statements[5]}
+        #if any of them are 0 remove it
+        statements_dict = {k: v for k, v in statements_dict.items() if v != 0} # Copilot is the best, this line removes all values which are 0 from the dict
         
         #return Panel.fit(termcharts.doughnut(statements_dict, title='Statments', rich=True)) #Term charts 
         # again, I think we shouldn't have the Total defined variable
@@ -715,25 +736,37 @@ class VisualWrapper:
                                    for key, value in statements_dict.items()])
         statements_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", statements_md)
 
+        # height
+        possible_height = len(statements_md.splitlines()) + 2
+            
         statements_panel = Panel(renderable=statements_md,
                                  title="[magenta b]Statements[/]",
                                  title_align="center",
-                                 border_style="bright_blue")
+                                 border_style="bright_blue",
+                                 height=_height)
+        if give_height:
+            return possible_height
 
         return statements_panel
 
-    def get_deco(self):
+    def get_deco(self, _height=None, give_height=False):
         color1, color2 = self.get_colors()
         decorators = self.stat.count_decorator()
 
         decorators_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
                                    for key, value in decorators.items()])
         decorators_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", decorators_md)
-
+        
+        possible_height = len(decorators_md.splitlines())
+        
         decorators_panel = Panel(renderable=decorators_md,
                                  title="[magenta b]Decorators[/]",
                                  title_align="center",
-                                 border_style="bright_blue")
+                                 border_style="bright_blue",
+                                height=_height)
+        
+        if give_height:
+            return possible_height
 
         return decorators_panel
 
@@ -791,9 +824,11 @@ class VisualWrapper:
     def get_all(self, gui=True):
         with Status(f'[black]Getting statistics on [green]{len(self.directory)}[/] {"File" if len(self.directory) == 1 else "Files"}.[/]'):
             imp_count = self.get_import_count()
-
-            group1 = Columns([self.get_line_count(), self.get_variable(), self.get_statements(),
-                              self.get_deco()]) #self.reformat_args() to get args to debug
+            
+            g1_height_max = (max(self.get_line_count(give_height=True), self.get_variable(give_height=True), self.get_statements(give_height=True), self.get_deco(give_height=True))) #max height of the first group to look better
+            
+            group1 = Columns([self.get_line_count(g1_height_max), self.get_variable(g1_height_max), self.get_statements(),
+                              self.get_deco(g1_height_max)]) #self.reformat_args() to get args to debug
 
             group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
 
@@ -803,7 +838,7 @@ class VisualWrapper:
             groups = Group(self.quick_stats(),  
                            Rule('[bright_black b]At a glance[/]', style='red'),
                            group1, self.get_class(),
-                           Rule('[bright_black b]Functions & Classes[/]', style='red'), Panel(group3, style=self.get_colors()[0], width=self.full_width+7), #To remove the box around Functions & Classes remove panel wrapper
+                           Rule('[bright_black b]Functions & Classes[/]', style='red'), group3, #To remove the box around Functions & Classes remove panel wrapper, Panel(group3, style=self.get_colors()[0], width=self.full_width+7)
                            Rule('[bright_black b]Imports (from count is not working currently)',
                                 style='red'), group2)
             if gui:
