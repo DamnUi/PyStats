@@ -361,8 +361,8 @@ class Stat:
 
                     class_names[class_name] = [f'{line}, '
                                                f'Defined on line: {cur_line}, '
-                                               f'in file: {file} '
-                                               f'Contains {len(ls[itr])} functions.'][0]
+                                               f'in file: {file} \n' 
+                                               f' Contains {len(ls[itr])} {"function" if len(ls[itr]) == 1 else "functions"}.'][0]# Yes this space is needed, and the [0] is needed too to remove brackets
 
                     itr += 1
                 cur_line += 1
@@ -485,7 +485,7 @@ class Stat:
         return arg_list
 
 
-class VisualWrapper:
+class VisualWrapper():
     def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
         self.directory = directory
         
@@ -663,11 +663,15 @@ class VisualWrapper:
                                 for key, value in classes.items()])
         classes_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", classes_md)
 
+        #remove ,
+        classes_md = re.sub(r",", "\n", classes_md)
+
         class_panel = Panel(renderable=classes_md,
                             title="[magenta b]Classes",
                             title_align="left",
                             border_style="bright_blue")
 
+        
         return class_panel
 
     def get_func(self, get_=None):
@@ -694,7 +698,7 @@ class VisualWrapper:
                     #width = len(max(old_func)) + 4 #Need to fix this
                 elif get_ == 3:
                     title = '[black]Line'
-                    width = len(max(old_func)) * 10
+                    width = len(max(old_func)) + 7
                 else:
                     title = '[black]Times Used'
                     width = len(max(old_func)) * 10
