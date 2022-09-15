@@ -133,7 +133,6 @@ else:
 
 
 class Stat:
-
     def __init__(self, directory) -> None:
         # this is to accommodate projects with multiple directories as well as those with
         # multiple files in a single directory
@@ -333,6 +332,9 @@ class Stat:
         class_names = {}
         ls = []
         itr = 0
+        c1 = "spring_green4"
+        c2 = "spring_green4"
+        c3 = "spring_green4"
         for file_path in self.directory:
             cur_line = 1
 
@@ -359,10 +361,11 @@ class Stat:
                     if isinstance(ls[itr][0], ast.Pass):
                         ls[itr].remove(ls[itr][0])
 
+                    
                     class_names[class_name] = [f'{line}, '
-                                               f'Defined on line: {cur_line}, '
-                                               f'in file: {file} \n' 
-                                               f' Contains {len(ls[itr])} {"function" if len(ls[itr]) == 1 else "functions"}.'][0]# Yes this space is needed, and the [0] is needed too to remove brackets
+                                               f'- [{c1}]Defined on line: {cur_line}[/], '
+                                               f'- [{c2}]in file: {file}[/] \n' 
+                                               f' - [{c3}]Contains {len(ls[itr])} {"function" if len(ls[itr]) == 1 else "functions"}[/]'][0]# Yes this space is needed, and the [0] is needed too to remove brackets
 
                     itr += 1
                 cur_line += 1
