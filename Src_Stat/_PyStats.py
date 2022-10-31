@@ -8,9 +8,11 @@ import os
 import random
 import re
 import sys
+from turtle import heading
+from numpy import var
 
 import termcharts # In Dev
-
+import rich.box
 from rich.columns import Columns
 from rich.console import Console
 from rich.console import Group
@@ -77,8 +79,7 @@ parser.add_argument("--adhd", help="Enable ADHD Mode", default=False)
 
 # Argument to get line in get_functions in Stat class
 parser.add_argument("--getline",
-                    help="Get Help line in Functions (Disabled cause it makes it extremely "
-                         "big)",
+                    help="Get parameters of all scraped functions",
                     default=False)
 
 parser.add_argument("-imgpath", help="Input Absolute Path to create the img example: \
@@ -87,7 +88,7 @@ parser.add_argument("-imgpath", help="Input Absolute Path to create the img exam
 # Debug argument to print out the file names
 path = parser.parse_args()
 args = parser.parse_args()
-
+removed_files = []
 if args.vars is None:
     args.vars = False
 if args.df is None:
@@ -105,9 +106,10 @@ if args.df is None:
         try:
             compile(open(file).read(), file, 'exec')
         except Exception as e:
-            print(f"[red]Syntax Error in {file}, Removing[/], {e}")
+            #print(f"[red]Syntax Error in {file}, Removing[/], {e}")
             #remove it
-            working_path.remove(file)
+            working_path.remove(file)   
+            removed_files.append(file)
             continue
 
     # Automatic mode
@@ -393,10 +395,19 @@ class Stat:
                         class_name = gex.match(line_).group(1)
                         if not class_name.endswith('__'):
                             if display_line:
-                                class_names[class_name] = [f'{line_}, '
-                                                           f'[red]In file[/] {file} & '
-                                                           f'[red]Defined[/] @ line # '
-                                                           f'{cur_line}'][0]
+                                #remove comments form line using regex
+                                line_ = re.sub(r'#.*', '', line_)
+                                #remove  : from line
+                                line_ = line_.replace(':', '')
+                                #using regex get all parameters and color them
+                                for each in re.findall(r'\(.*?\)', line_):
+                                    line_ = line_.replace(each, f'[magenta]{each}[/]')
+
+
+                                class_names[class_name] = ["This is useless dont use 0 or nothing",
+                                                           f'[cyan]{line_}:[/]', f"{file}",
+                                                           f"{cur_line}",
+                                                           f"{(most_called_func[class_name]) + 1}"]
                             else:
                                 class_names[class_name] = ["This is useless dont use 0 or nothing",
                                                            f'[cyan]{class_name}:[/]', f"{file}",
@@ -474,7 +485,24 @@ class Stat:
 
                     line_num += 1
         return decorator_list
-
+    
+    def get_var_types(self):
+        var_types = {}
+        numiter = 0
+        for file_path in self.directory:
+            with open(file_path, encoding="utf8") as open_file:
+                tree = ast.parse(open_file.read())
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Assign):
+                        for target in node.targets:
+                            if isinstance(target, ast.Name):
+                                try:
+                                    var_types[target.id] = type(node.value).__name__
+                                except Exception:
+                                    var_types[f"Cloudnt Get {numiter}"] = type(node.value).__name__
+                            numiter += 1
+        return var_types
+        
     @staticmethod
     def get_args():
         # Get all commandline args and what value their currently on
@@ -486,6 +514,108 @@ class Stat:
                     '--vars': args.vars,
                     '--adhd': args.adhd, }
         return arg_list
+
+
+## Wanted to split the long variable panel but cloudnt this code doesnt work
+class custom_panel():
+    def __init__(self, raw_md, splitbynewline=False) -> None:
+        self.raw = raw_md
+        if splitbynewline:
+            self.raw = self.raw.split("\n")
+    def set_panel_settings(self, title, border_style, expand=False, padding=(0, 0), width=100, height=100, title_align="center"):
+        self.title = title
+        self.border_style = border_style
+        self.expand = expand
+        self.padding = padding
+        self.width = width
+        self.height = height
+        self.title_align = title_align
+    
+    def md_split(self, split_divide_by=3, dict_=False):
+        self.split_divide_by = split_divide_by  
+        try:
+            each_panel_should_contain = len(self.raw) / split_divide_by
+            contain = int(round(each_panel_should_contain, 0))
+        except Exception as e:
+            pass
+        if dict_:
+            self.raw = dict(self.raw)
+            self.raw = [self.raw[i:i + 10] for i in range(0, len(self.raw), 10)]
+            return self.raw
+        
+        md_split = []
+        for i in range(split_divide_by):
+            md_split.append(self.raw[i * contain:(i + 1) * contain])
+        return md_split
+    
+    def make_panel(self, dict_mod3):
+        md_split = self.md_split(dict_=dict_mod3)
+        panels = []
+        for i in range(self.split_divide_by):
+            panels.append(Panel(md_split[i], 
+                                expand=self.expand, padding=self.padding, width=self.width, height=self.height, title=self.title, border_style=self.border_style, title_align=self.title_align))
+        
+        return panels
+    
+
+
+
+class simplpromt():
+    def __init__(self, custom_promt=None, Defaults=True, add_to_default_promt=None) -> None:
+        #clear cmd
+        username = os.getlogin()
+        self.username =  f'[blue]{username}[/]'
+        
+        self.control_panel = Panel
+        self.instace = Panel
+        
+        current_path = os.getcwd()
+        #format path
+        current_path = current_path.replace('\\', '/')
+        #remove D:
+        self.current_path = current_path[2:]
+        
+        
+        self.osx = sys.platform
+        self.osxversion = sys.version
+        
+        self.sizes = os.get_terminal_size()
+        
+        
+        
+        if custom_promt:
+            self.custom_promt = custom_promt
+        else:
+            self.old_promt = f"[green]PyStats@[/]{self.username}: {self.current_path} "
+            self.custom_promt = f"[green]PyStats@[/]{self.username}: {self.current_path} "
+        if add_to_default_promt:
+            self.custom_promt += f' {add_to_default_promt}'
+        
+        if Defaults:
+            print((self.instace(f"{self.custom_promt} \n[gray7]OS: {self.osx} {self.osxversion}[/] $", height=4, border_style='grey39', box=rich.box.HORIZONTALS)))
+
+        
+    def clear():
+        def cls(func):
+            def wrapper(*args, **kwargs):
+                os.system('cls' if os.name == 'nt' else 'clear')
+                func(*args, **kwargs)
+            return wrapper
+        return  cls
+    
+
+    @clear()
+    def add_to_main(self, text, cls_previous=False):
+        if cls_previous:
+            self.custom_promt = self.old_promt
+        self.custom_promt += f' {text}'
+        
+        print((self.instace(self.custom_promt, height=3, width=self.sizes[0]-len(self.custom_promt)-15, border_style='grey39', box=rich.box.HORIZONTALS)))
+        
+
+    def update(self, text):
+        print(f"  {text}")
+
 
 
 class VisualWrapper():
@@ -548,6 +678,11 @@ class VisualWrapper():
         for py_files in combined_directories.split("\n"):
             #print() OFC THIS IS THE LINE I LEAVE HERE BY MISTAKE TRYNA FIRGURE IT OUT OH MY GODDDDD
             tree.add(f'[gold1]{py_files}[/] 'f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
+            
+        if len(removed_files) != 0:
+            #tree.add(f"[bright_black]Removed Files:[/]")
+            for file_ in removed_files:
+                tree.add(f"[bright_black]{file_} ({round(os.path.getsize(file_) / 1000, 2)} kB)[/]")
 
         return Panel(tree, title="[magenta b]Files obtained[/]", style='bright_blue')
 
@@ -574,10 +709,12 @@ class VisualWrapper():
         
         return line_count_panel
 
-    def get_variable(self, _height=None, give_height=False):
-        n_variables = len(self.directory)
-        if int(n_variables) > 10:
-            n_variables = 1
+    def get_variable(self, _height=None, give_height=False, raw=False, get_overde=None):
+        n_variables = len(self.directory) 
+        if get_overde:
+            n_variables = get_overde
+        # if int(n_variables) > 10:
+        #     n_variables = 1
         if args.vars:
             n_variables = int(args.vars)
             # Gets max number of variables assuming their not more than 100000 cloud implement a
@@ -612,9 +749,61 @@ class VisualWrapper():
 
         if give_height:
             return possible_height
+        if raw:
+            return variables
 
-        return variable_panel
+        return variable_panel        
 
+    def var_combine(self):
+        #get all matches between self.get_variable(raw=True, get_overde=999999) and self.stat.get_var_types()
+        #then combine them into a dict
+        #then return that dict
+        var = self.get_variable(raw=True, get_overde=999999)
+        var_type = self.stat.get_var_types()
+        
+        #find matches from both and its type
+        matches = {}
+        for key, value in var.items():
+            for key2, value2 in var_type.items():
+                if key == key2:
+                    matches[key] = [value, value2]
+
+        return matches
+        
+    def visual_var_combine(self, typecolor="bright_yellow", limit=None, back=True):
+        all_var = self.var_combine()
+        color1, color2 = self.get_colors()
+        #make a panel out of it
+        #then return that panel
+        for key, value in all_var.items():
+            newval = f"[{typecolor}]{value[1]}[/]"
+            all_var[key] = value[0], newval
+        var_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                    for key, value in all_var.items()])
+        #The type should be a different color
+        
+        var_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", var_md)
+        old_md = var_md
+        var_md = custom_panel(var_md).md_split(3)
+        penl = []
+        for smtn in var_md:
+            var_panel = Panel(renderable=smtn,
+                                    title=f"[magenta b]Variable types[/]",
+                                    title_align="center",
+                                    border_style="bright_blue",
+                                    height=limit)
+            penl.append(var_panel)
+
+        
+        if back:
+            old_panel = Panel(renderable=old_md,
+                                    title=f"[magenta b]Variable types[/]",
+                                    title_align="center",
+                                    border_style="bright_blue",
+                                    height=limit)
+            return old_panel
+        return penl
+    
     def get_import_count(self):
         color1, color2 = self.get_colors()
         imports = self.stat.import_count()
@@ -716,7 +905,6 @@ class VisualWrapper():
                 print(e)
                 pass
                 
-
         func_panel = Panel(renderable=func,
                            title="[bright_black b]Functions[/]",
                            title_align="center",
@@ -829,29 +1017,47 @@ class VisualWrapper():
                    'Use the option --imgpath to specify a path[/]'
 
     def get_all(self, gui=True):
-        with Status(f'[black]Getting statistics on [green]{len(self.directory)}[/] {"File" if len(self.directory) == 1 else "Files"}.[/]'):
-            imp_count = self.get_import_count()
+        promt = simplpromt(add_to_default_promt=f'[red]PyStats - Python File Stats [/]- [black]Getting statistics on [/][green]{len(self.directory)}[/] [black]{"File" if len(self.directory) == 1 else "Files"}[/] $')
+        total_time = 0
+        for file in self.directory:
+            #if file is small less than 5kb
+            if os.path.getsize(file) < 5000:    
+                total_time += 2 
+            elif os.path.getsize(file) < 10000:
+                total_time += 4
+            elif os.path.getsize(file) < 20000:
+                total_time += 5
+            elif os.path.getsize(file) < 30000:
+                total_time += 6
+            elif os.path.getsize(file) < 100000:
+                total_time += 10 
+        promt.update(f'[black]This might take [green]{total_time}[/] seconds[/]')
+
             
-            g1_height_max = (max(self.get_line_count(give_height=True), self.get_variable(give_height=True), self.get_statements(give_height=True), self.get_deco(give_height=True))) #max height of the first group to look better
+        imp_count = self.get_import_count()
+        
+        g1_height_max = (max(self.get_line_count(give_height=True), self.get_variable(give_height=True), self.get_statements(give_height=True), self.get_deco(give_height=True))) #max height of the first group to look better
+        
+        group1 = Columns([self.get_line_count(g1_height_max), self.get_variable(g1_height_max), self.get_statements(),
+                            self.get_deco(g1_height_max)]) #self.reformat_args() to get args to debug
+
+        group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
+
+        group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
+                            self.get_func(2), self.visual_var_combine()])  # The colours used for this need to change
+
+        groups = Group(Columns([self.quick_stats(), self.reformat_args()], padding=(0, os.get_terminal_size()[0]-91)),# This exact number is needed for pixel perfect accuracy
+                        Rule('[bright_black b]At a glance[/]', style='red'),
+                        group1, self.get_class(),
+                        Rule('[bright_black b]Functions & Classes[/]', style='red'), group3, #To remove the box around Functions & Classes remove panel wrapper, Panel(group3, style=self.get_colors()[0], width=self.full_width+7)
+                        Rule('[bright_black b]Imports (from count is not working currently)',
+                            style='red'), group2)
+        if gui:
+            return Panel(renderable=groups,
+                            title="[bright_black b]All Stats[/]",
+                            title_align="center", style='red', box=rich.box.HEAVY)
+                
             
-            group1 = Columns([self.get_line_count(g1_height_max), self.get_variable(g1_height_max), self.get_statements(),
-                              self.get_deco(g1_height_max)]) #self.reformat_args() to get args to debug
-
-            group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
-
-            group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
-                              self.get_func(2)])  # The colours used for this need to change
-
-            groups = Group(self.quick_stats(),  
-                           Rule('[bright_black b]At a glance[/]', style='red'),
-                           group1, self.get_class(),
-                           Rule('[bright_black b]Functions & Classes[/]', style='red'), group3, #To remove the box around Functions & Classes remove panel wrapper, Panel(group3, style=self.get_colors()[0], width=self.full_width+7)
-                           Rule('[bright_black b]Imports (from count is not working currently)',
-                                style='red'), group2)
-            if gui:
-                return Panel(renderable=groups,
-                             title="[bright_black b]All Stats[/]",
-                             title_align="center", style='red')
                 
                 
                 
