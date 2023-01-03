@@ -1031,7 +1031,7 @@ class VisualWrapper():
                 total_time += 6
             elif os.path.getsize(file) < 100000:
                 total_time += 10 
-        promt.update(f'[black]This might take [green]{total_time}[/] seconds[/]')
+        promt.update(f'[black]This wont take longer then [green]{total_time}[/] seconds[/]')
 
             
         imp_count = self.get_import_count()

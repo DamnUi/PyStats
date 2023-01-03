@@ -3,6 +3,7 @@ import inspect
 from pathlib import Path
 import os
 
+
 console = Console(record=True)
 try:    
     import _PyStats
