@@ -28,7 +28,8 @@ def from_imports(input_file, get_assets=False):
         with open(input_file, encoding='utf8') as input_file:
             for _code_line in input_file:
                 if re.match(r"^from\s\w+(?:.\w+)?\simport\s\w+(?:,\s\w+)*", _code_line):
-                    _code_line = re.sub(r'(#(?<=#).*', '', _code_line)
+                    _code_line = re.sub(r'#(?<=#).*', '', _code_line)
+                    _code_line = re.sub(r'(?<=\s)as\s\w+', '', _code_line)
                     result.append(_code_line.strip())
 
         if not get_assets:
@@ -67,6 +68,7 @@ def import_imports(input_file):
         for _code_line in input_file:
             if re.match(r"^import\s\w+", _code_line):
                 _code_line = re.sub(r'#(?<=#).*', '', _code_line)
+                _code_line = re.sub(r'(?<=\s)as\s\w+', '', _code_line)
                 import_.append(_code_line.strip())
 
     return dict(Counter(import_))

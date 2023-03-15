@@ -8,8 +8,7 @@ import os
 import random
 import re
 import sys
-from turtle import heading
-from numpy import var
+
 
 import termcharts # In Dev
 import rich.box
@@ -42,10 +41,9 @@ if __name__ == '__main__':
     print('[yellow]Looking for PyStats.py wrapper in the current directory')        
     if find('PyStats.py', '.'):
         print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
-        os.chdir(os.path.dirname(find('PyStats.py', '.')))
         os.system('Python PyStats.py')
     else:
-        print('[red]Could not find PyStats.py wrapper in the current directory, Please install fully instead[/]')
+        print('[red]Could not find PyStats.py wrapper in the working directory, Please install fully instead[/]')
         quit()
 
     
@@ -64,7 +62,7 @@ if os_name == "nt":
 
 parser = argparse.ArgumentParser()
 
-# if no arguments are passed, the default is set to the current directory
+# if arg nouments are passed, the default is set to the current directory
 parser.add_argument("-df", help="Input Absolute Path to Directory or one File")
 
 # df is directory or file it will kinda figure out itself assuming theirs only 2 files in
@@ -246,13 +244,37 @@ class Stat:
                         file_path = file_path.split("/")[-1]
                         
                     line_count[file_path] = count
-                    
         else:
             with open(self.directory[0], encoding="utf8") as open_file:
                 file_path = os.path.relpath(self.directory[0])
                 line_count[file_path] = sum(1 for _ in open_file)
 
+        avg_line_count = sum(line_count.values()) / len(line_count.keys())
+        line_count["Average"] = avg_line_count.__round__(2)
+
         return line_count
+
+    def dupelinefind(self):
+        self.dupes = {}
+        for filepath in self.directory:
+            #open every file get all lines make them hashes then find duplicates in all files
+            with open(filepath, encoding="utf8") as open_file:
+                lines = open_file.readlines()
+                #strip line
+                lines = [line.strip() for line in lines]
+                
+                for line in lines:
+                    if line in self.dupes:
+                        self.dupes[line] += 1
+                    else:
+                        self.dupes[line] = 1
+                        
+        #arrange them in order of most to least
+        self.dupes = dict(sorted(self.dupes.items(), key=lambda item: item[1], reverse=True))
+        #remove first value of dict
+        self.dupes.pop('')
+        
+        return self.dupes
 
     def most_used_variable(self, n_variables=None):
         item_list = _utils.list_to_counter_dictionary(self.__scrape_variables())
@@ -356,9 +378,19 @@ class Stat:
             for line in lines:
                 line = line.strip()
                 line = str(line)
+                
+                
                 # could possibly also get the line where the class was defined
                 if gex.match(line):
+                    
+                    
                     class_name = gex.match(line).group(1)
+                    
+                    try:
+                        brackinfo = re.search(r'\((.*?)\)',line).group(1)
+                        line = line.replace(brackinfo, f'[red]{brackinfo}[/]')
+                        
+                    except Exception:pass
 
                     if isinstance(ls[itr][0], ast.Pass):
                         ls[itr].remove(ls[itr][0])
@@ -703,11 +735,28 @@ class VisualWrapper():
                                  height=_height)
 
 
+        
+        
         possible_height = (len(line_count_md.split("\n")))
         if give_height:
-            return possible_height
+            return possible_height + 2
         
         return line_count_panel
+
+    def dupelinefind(self, _height=None):
+        dupes = self.stat.dupelinefind() 
+        color1, color2 = self.get_colors()
+        dupes_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                for key, value in dupes.items()])
+
+        func_panel = Panel(renderable=dupes_md,
+                           title="[magenta b]Dupe Lines[/]",
+                           title_align="center",
+                           border_style="blue",
+                           width=30,
+                           height=_height)
+
+        return func_panel
 
     def get_variable(self, _height=None, give_height=False, raw=False, get_overde=None):
         n_variables = len(self.directory) 
@@ -773,6 +822,9 @@ class VisualWrapper():
     def visual_var_combine(self, typecolor="bright_yellow", limit=None, back=True):
         all_var = self.var_combine()
         color1, color2 = self.get_colors()
+        
+        main_dict = {} 
+        
         #make a panel out of it
         #then return that panel
         for key, value in all_var.items():
@@ -786,6 +838,8 @@ class VisualWrapper():
         old_md = var_md
         var_md = custom_panel(var_md).md_split(3)
         penl = []
+        
+        
         for smtn in var_md:
             var_panel = Panel(renderable=smtn,
                                     title=f"[magenta b]Variable types[/]",
@@ -803,6 +857,43 @@ class VisualWrapper():
                                     height=limit)
             return old_panel
         return penl
+    
+    def visual_var_combinev2(self, typecolor="bright_yellow", limit=None):
+        all_var = self.var_combine()
+        color1, color2 = self.get_colors()
+        
+        main_dct = {}
+        formatted = []
+        
+        for i in all_var.values():
+            formatted.append(i[1])
+            
+        #if not in main_dct add it and if it is there add 1 to it
+        for i in formatted:
+            if i not in main_dct:
+                main_dct[i] = 1
+            else:
+                main_dct[i] += 1
+            
+            
+        #format it in order of bigger to smallest
+        main_dct = {k: v for k, v in sorted(main_dct.items(), key=lambda item: item[1], reverse=True)}
+        
+        all_vars_md = "\n".join([f"[{color2}]{key}[/]: [{color1}]{value}[/]"
+                                  for key, value in main_dct.items()])
+        all_vars_md = re.sub(r"(.*?): (\d+)", r"\1: [b]\2[/]", all_vars_md)
+        
+        panel = Panel(renderable=all_vars_md,
+                                    title=f"[black]Variable types[/]",
+                                    title_align="center",
+                                    border_style="bright_blue")
+        
+        return panel
+        
+        
+        
+
+        
     
     def get_import_count(self):
         color1, color2 = self.get_colors()
@@ -865,6 +956,8 @@ class VisualWrapper():
 
         
         return class_panel
+
+        
 
     def get_func(self, get_=None):
         color1, color2 = self.get_colors()
@@ -1031,22 +1124,23 @@ class VisualWrapper():
                 total_time += 6
             elif os.path.getsize(file) < 100000:
                 total_time += 10 
-        promt.update(f'[black]This wont take longer then [green]{total_time}[/] seconds[/]')
-
-            
+        promt.update(f'[black]This wont take longer then [green]{total_time}[/] seconds[/]')        
+        
+        
         imp_count = self.get_import_count()
         
         g1_height_max = (max(self.get_line_count(give_height=True), self.get_variable(give_height=True), self.get_statements(give_height=True), self.get_deco(give_height=True))) #max height of the first group to look better
         
-        group1 = Columns([self.get_line_count(g1_height_max), self.get_variable(g1_height_max), self.get_statements(),
+        group1 = Columns([self.get_line_count(g1_height_max), self.get_variable(g1_height_max), self.get_statements(g1_height_max), self.dupelinefind(g1_height_max),
                             self.get_deco(g1_height_max)]) #self.reformat_args() to get args to debug
 
         group2 = Columns([imp_count[0], imp_count[1]], padding=(0, 1))
 
         group3 = Columns([self.get_func(1), self.get_func(4), self.get_func(3),
-                            self.get_func(2), self.visual_var_combine()])  # The colours used for this need to change
+                            self.get_func(2), self.visual_var_combinev2()])  # v1 shows all and how many times each thing is called while v2 shows a summary of it v2 looks cleaner
+        
 
-        groups = Group(Columns([self.quick_stats(), self.reformat_args()], padding=(0, os.get_terminal_size()[0]-91)),# This exact number is needed for pixel perfect accuracy
+        groups = Group(Columns([self.quick_stats(), self.reformat_args()], padding=(1, os.get_terminal_size()[0]-130)),# This exact number is needed for pixel perfect accuracy
                         Rule('[bright_black b]At a glance[/]', style='red'),
                         group1, self.get_class(),
                         Rule('[bright_black b]Functions & Classes[/]', style='red'), group3, #To remove the box around Functions & Classes remove panel wrapper, Panel(group3, style=self.get_colors()[0], width=self.full_width+7)
@@ -1058,6 +1152,5 @@ class VisualWrapper():
                             title_align="center", style='red', box=rich.box.HEAVY)
                 
             
-                
                 
                 
