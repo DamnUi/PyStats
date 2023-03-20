@@ -8,6 +8,7 @@ Currently the most updated branch is scrp_dev2 or major before 10
 Its on pypi
 ```py
 pip install PypStat
+PypStat -h *For help
 ```
 
 
