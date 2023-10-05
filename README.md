@@ -5,7 +5,7 @@ PyStats scrapes your Python files for any data it can find and presents it intui
 Currently the most updated branch is scrp_dev2 or major before 10
 
 ## Quick Start
-Its on pypi
+Its on pypi (NOW OUTDATED)
 ```py
 pip install PypStat
 PypStat -h *For help
