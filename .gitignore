@@ -132,3 +132,4 @@ dmypy.json
 # testing files
 /run_pystats.bash
 /test.py
+*.svg
