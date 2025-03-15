@@ -1,5 +1,17 @@
-"""Created on Aug 27 17:22:45 2022."""
+"""PyStats - Python Code Statistics Analyzer
 
+This module analyzes Python source code to provide statistics and insights about:
+- Code structure (functions, classes, imports)
+- Code metrics (line counts, complexity)
+- Usage patterns (variable usage, function calls)
+- Code duplication
+
+The module can be used either as a command-line tool or imported as a library.
+"""
+
+# Standard library imports
+from __future__ import annotations
+from typing import Dict, List, Union, Optional, Any, Set, Tuple
 import argparse
 import ast
 import ctypes
@@ -8,9 +20,9 @@ import os
 import random
 import re
 import sys
+from pathlib import Path
 
-
-import termcharts # In Dev
+# Third-party imports
 import rich.box
 from rich.columns import Columns
 from rich.console import Console
@@ -20,9 +32,229 @@ from rich.rule import Rule
 from rich.status import Status
 from rich.traceback import install as install_traceback
 from rich.tree import Tree
+import termcharts  # Visualization library (in development)
 
+# Local imports
 import errors as _errors
 import utilities as _utils
+
+# Configuration
+console = Console(record=True)
+install_traceback(show_locals=False)
+print = console.print
+
+# Constants
+SUPPORTED_EXTENSIONS = ['.py']
+DEFAULT_ENCODING = 'utf-8'
+MINIMUM_FILE_SIZE = 5000  # 5KB threshold for performance estimation
+
+class FileProcessor:
+    """Handles file discovery and validation for Python source files."""
+    
+    @staticmethod
+    def find_python_files(directory: str) -> List[str]:
+        """Find all Python files in the given directory.
+        
+        Args:
+            directory: Root directory to search in
+            
+        Returns:
+            List of paths to Python files found
+        """
+        python_files = []
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.endswith('.py'):
+                    python_files.append(os.path.join(root, file))
+        return python_files
+    
+    @staticmethod
+    def validate_python_file(file_path: str) -> bool:
+        """Check if a Python file is valid by attempting to compile it.
+        
+        Args:
+            file_path: Path to the Python file to validate
+            
+        Returns:
+            True if file is valid Python, False otherwise
+        """
+        try:
+            with open(file_path, 'r', encoding=DEFAULT_ENCODING) as f:
+                compile(f.read(), file_path, 'exec')
+            return True
+        except Exception:
+            return False
+    
+    @staticmethod
+    def estimate_processing_time(file_paths: List[str]) -> int:
+        """Estimate processing time based on file sizes.
+        
+        Args:
+            file_paths: List of file paths to analyze
+            
+        Returns:
+            Estimated processing time in seconds
+        """
+        total_time = 0
+        for file_path in file_paths:
+            size = os.path.getsize(file_path)
+            if size < MINIMUM_FILE_SIZE:
+                total_time += 2
+            elif size < 10000:
+                total_time += 4
+            elif size < 20000:
+                total_time += 5
+            elif size < 30000:
+                total_time += 6
+            else:
+                total_time += 10
+        return total_time
+
+def initialize_workspace(args: argparse.Namespace) -> Tuple[List[str], List[str]]:
+    """Initialize the workspace by finding and validating Python files.
+    
+    Args:
+        args: Parsed command line arguments
+        
+    Returns:
+        Tuple of (valid_files, removed_files)
+    """
+    removed_files = []
+    
+    if args.df is None:
+        # Automatic mode - search current directory
+        working_path = FileProcessor.find_python_files(os.getcwd())
+        
+        # Validate files
+        valid_files = []
+        for file_path in working_path:
+            if FileProcessor.validate_python_file(file_path):
+                valid_files.append(file_path)
+            else:
+                removed_files.append(file_path)
+        
+        if __name__ == '__main__':
+            print(f"[green]Found {len(valid_files)} valid Python files[/]")
+            if removed_files:
+                print(f"[yellow]Skipped {len(removed_files)} invalid files[/]")
+                
+        return valid_files, removed_files
+        
+    else:
+        # Specific directory or file mode
+        if os.path.isdir(args.df):
+            # Process directory
+            working_path = []
+            for dir_path, _, filenames in os.walk(args.df):
+                python_files = [os.path.relpath(os.path.join(dir_path, f))
+                              for f in filenames if f.endswith('.py')]
+                working_path.extend(python_files)
+            
+            # Handle neglected files
+            if args.neglect:
+                working_path = [
+                    path for path in working_path 
+                    if args.neglect not in path.replace("\\", "/")
+                ]
+                
+            return working_path, []
+        else:
+            # Single file mode
+            return [args.df], []
+
+def main():
+    """Main entry point for PyStats."""
+    parser = setup_argument_parser()
+    args = parser.parse_args()
+    
+    # Initialize workspace
+    valid_files, removed_files = initialize_workspace(args)
+    
+    if not valid_files:
+        print("[red]No valid Python files found to analyze[/]")
+        return
+        
+    # Initialize statistics with new structure
+    stats = CodeStatistics(valid_files)
+    
+    # Initialize visualization
+    wrapper = VisualWrapper(
+        stats,  # Pass the statistics object instead of raw files
+        adhd_mode=args.adhd,
+        extra_adhd=False
+    )
+    
+    # Display results
+    print(wrapper.get_all(gui=True))
+
+if __name__ == '__main__':
+    main()
+
+def find_wrapper(name: str, path: str) -> Optional[str]:
+    """Find a file in the given directory and its subdirectories.
+    
+    Args:
+        name: Name of the file to find
+        path: Root directory to start search from
+        
+    Returns:
+        Full path to the file if found, None otherwise
+    """
+    for root, _, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+    return None
+
+def setup_argument_parser() -> argparse.ArgumentParser:
+    """Configure and return the argument parser for command line options.
+    
+    Returns:
+        Configured argument parser instance
+    """
+    parser = argparse.ArgumentParser(
+        description="Analyze Python source code and generate statistics"
+    )
+    
+    parser.add_argument(
+        "-df",
+        help="Path to directory or file to analyze (defaults to current directory)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "-neglect",
+        help="Path to file to ignore (only valid when analyzing directory)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--vars",
+        help="Number of most used variables to show",
+        type=int,
+        default=None
+    )
+    
+    parser.add_argument(
+        "--adhd",
+        help="Enable ADHD mode with colorful output",
+        action="store_true",
+        default=False
+    )
+    
+    parser.add_argument(
+        "--getline",
+        help="Show line numbers for function definitions",
+        action="store_true",
+        default=False
+    )
+    
+    parser.add_argument(
+        "-imgpath",
+        help="Path to save visualization image (without extension)",
+        default=None
+    )
+    
+    return parser
 
 # could've imported from PyStats but that'd create a circular import, should be avoided
 console = Console(record=True)
@@ -132,11 +364,199 @@ else:
         working_path = path.df
 
 
-class Stat:
-    def __init__(self, directory) -> None:
-        # this is to accommodate projects with multiple directories as well as those with
-        # multiple files in a single directory
+# Analysis-specific classes
+class CodeReader:
+    """Handles reading and caching of source code files."""
+    
+    def __init__(self, file_paths: List[str]):
+        self.file_paths = file_paths
+        self._cache: Dict[str, List[str]] = {}
+        
+    def get_file_contents(self, file_path: str) -> List[str]:
+        """Get contents of a file, using cache if available."""
+        if file_path not in self._cache:
+            with open(file_path, encoding=DEFAULT_ENCODING) as f:
+                self._cache[file_path] = f.readlines()
+        return self._cache[file_path]
 
+class ImportAnalyzer:
+    """Analyzes Python import statements."""
+    
+    def __init__(self, code_reader: CodeReader):
+        self.code_reader = code_reader
+        
+    def analyze_imports(self) -> Dict[str, Union[int, List[str]]]:
+        """Analyze all import statements in the files.
+        
+        Returns:
+            Dictionary containing import statistics:
+            - Keys starting with 'import': Count of direct imports
+            - Keys starting with 'from': List of imported names
+        """
+        result: Dict[str, Union[int, List[str]]] = {}
+        
+        for file_path in self.code_reader.file_paths:
+            # Get imports using AST for more reliable parsing
+            tree = ast.parse(''.join(self.code_reader.get_file_contents(file_path)))
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for name in node.names:
+                        import_key = f"import {name.name}"
+                        result[import_key] = result.get(import_key, 0) + 1
+                        
+                elif isinstance(node, ast.ImportFrom):
+                    module = node.module or ''
+                    from_key = f"from {module}"
+                    if from_key not in result:
+                        result[from_key] = []
+                    imported = [n.name for n in node.names]
+                    result[from_key] = list(set(result[from_key] + imported))  # type: ignore
+                    
+        return result
+
+class VariableAnalyzer:
+    """Analyzes Python variable declarations and usage."""
+    
+    def __init__(self, code_reader: CodeReader):
+        self.code_reader = code_reader
+        
+    def analyze_variables(self) -> Dict[str, Dict[str, Any]]:
+        """Analyze variable declarations and usage.
+        
+        Returns:
+            Dictionary with variable statistics:
+            {
+                'variable_name': {
+                    'type': str,  # Type of the variable if determinable
+                    'count': int,  # Number of uses
+                    'locations': List[Tuple[str, int]]  # File and line number of declarations
+                }
+            }
+        """
+        variables: Dict[str, Dict[str, Any]] = {}
+        
+        for file_path in self.code_reader.file_paths:
+            tree = ast.parse(''.join(self.code_reader.get_file_contents(file_path)))
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            var_name = target.id
+                            if var_name not in variables:
+                                variables[var_name] = {
+                                    'type': type(node.value).__name__,
+                                    'count': 0,
+                                    'locations': []
+                                }
+                            variables[var_name]['count'] += 1
+                            variables[var_name]['locations'].append(
+                                (file_path, node.lineno)
+                            )
+                            
+                elif isinstance(node, ast.Name):
+                    if node.id in variables:
+                        variables[node.id]['count'] += 1
+                        
+        return variables
+
+class FunctionAnalyzer:
+    """Analyzes Python function definitions and calls."""
+    
+    def __init__(self, code_reader: CodeReader):
+        self.code_reader = code_reader
+        
+    def analyze_functions(self) -> Dict[str, Dict[str, Any]]:
+        """Analyze function definitions and calls.
+        
+        Returns:
+            Dictionary with function statistics:
+            {
+                'function_name': {
+                    'calls': int,  # Number of times called
+                    'params': List[str],  # Parameter names
+                    'location': Tuple[str, int],  # File and line of definition
+                    'decorators': List[str]  # Applied decorators
+                }
+            }
+        """
+        functions: Dict[str, Dict[str, Any]] = {}
+        
+        for file_path in self.code_reader.file_paths:
+            tree = ast.parse(''.join(self.code_reader.get_file_contents(file_path)))
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    name = node.name
+                    if name not in functions:
+                        functions[name] = {
+                            'calls': 0,
+                            'params': [arg.arg for arg in node.args.args],
+                            'location': (file_path, node.lineno),
+                            'decorators': [
+                                ast.unparse(d).strip('@') for d in node.decorator_list
+                            ]
+                        }
+                elif isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Name):
+                        func_name = node.func.id
+                        if func_name in functions:
+                            functions[func_name]['calls'] += 1
+                            
+        return functions
+
+class CodeStatistics:
+    """Main class for gathering and accessing code statistics."""
+    
+    def __init__(self, file_paths: List[str]):
+        self.code_reader = CodeReader(file_paths)
+        self.import_analyzer = ImportAnalyzer(self.code_reader)
+        self.variable_analyzer = VariableAnalyzer(self.code_reader)
+        self.function_analyzer = FunctionAnalyzer(self.code_reader)
+        
+        # Cache for analysis results
+        self._import_stats: Optional[Dict] = None
+        self._variable_stats: Optional[Dict] = None
+        self._function_stats: Optional[Dict] = None
+        
+    def get_import_statistics(self) -> Dict[str, Union[int, List[str]]]:
+        """Get statistics about imports."""
+        if self._import_stats is None:
+            self._import_stats = self.import_analyzer.analyze_imports()
+        return self._import_stats
+    
+    def get_variable_statistics(self) -> Dict[str, Dict[str, Any]]:
+        """Get statistics about variables."""
+        if self._variable_stats is None:
+            self._variable_stats = self.variable_analyzer.analyze_variables()
+        return self._variable_stats
+    
+    def get_function_statistics(self) -> Dict[str, Dict[str, Any]]:
+        """Get statistics about functions."""
+        if self._function_stats is None:
+            self._function_stats = self.function_analyzer.analyze_functions()
+        return self._function_stats
+
+class Stat:
+    """Core statistics gathering class for Python source code analysis.
+    
+    This class handles parsing and analyzing Python source files to extract various
+    statistics about code structure, usage patterns, and metrics.
+    
+    Attributes:
+        directory: List of file paths to analyze
+    """
+
+    def __init__(self, directory: Union[str, List[str], List[List[str]]]) -> None:
+        """Initialize the Stat class with target files to analyze.
+        
+        Args:
+            directory: Path or list of paths to Python files to analyze
+            
+        Raises:
+            NoFilePresent: If no valid files are found to analyze
+        """
         if _utils.is_nested_list(directory):
             self.directory = [os.path.relpath(dir_)
                               for dir_ in list(itertools.chain.from_iterable(directory))]
@@ -145,22 +565,35 @@ class Stat:
         else:
             self.directory = [directory]
 
-        # if no file is present, break the program efficiently
         if not self.directory:
             raise _errors.NoFilePresent("No file present in given directory.")
 
     @staticmethod
-    def add_imports_to_results(import_list, result_dictionary):
+    def add_imports_to_results(import_list: Dict[str, int], 
+                             result_dictionary: Dict[str, int]) -> None:
+        """Add import counts to results dictionary.
+        
+        Args:
+            import_list: Dictionary of import statements and their counts
+            result_dictionary: Target dictionary to update with counts
+        """
         for key, value in import_list.items():
-            if key not in result_dictionary.keys():
+            if key not in result_dictionary:
                 result_dictionary[key] = value
             else:
                 result_dictionary[key] += value
 
     @staticmethod
-    def add_from_imports_results(from_import_list, result_dictionary):
+    def add_from_imports_results(from_import_list: Dict[str, List[str]],
+                               result_dictionary: Dict[str, List[str]]) -> None:
+        """Add from-import results to the results dictionary.
+        
+        Args:
+            from_import_list: Dictionary of from-import statements and imported names
+            result_dictionary: Target dictionary to update
+        """
         for key, value in from_import_list.items():
-            if key not in result_dictionary.keys():
+            if key not in result_dictionary:
                 result_dictionary[key] = value
             else:
                 result_dictionary[key].extend(value)
