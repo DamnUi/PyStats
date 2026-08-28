@@ -350,26 +350,77 @@ class PyStatsApp(App[None]):
     # ------------------------------------------------------------------
     # Interactions
     # ------------------------------------------------------------------
-    def on_tree_node_highlight(self, event: Tree.NodeHighlight) -> None:
-        """Show file info when a file is highlighted in the tree."""
-        label = str(event.node.label)
+    # -- per-file detail (Files tab) -----------------------------------
+
+    def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        """Show a quick preview when a file is highlighted with arrow keys."""
+        self._show_file_detail(str(event.node.label), preview=True)
+
+    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+        """Enter on a file: show the full per-file stats breakdown."""
+        self._show_file_detail(str(event.node.label), preview=False)
+
+    def _show_file_detail(self, label: str, preview: bool = True) -> None:
         detail = self.query_one("#files-detail", Static)
         # extract path portion before the size annotation
         path = label.split(" (")[0].strip()
-        if os.path.isfile(path):
-            try:
-                size_kb = round(os.path.getsize(path) / 1000, 2)
-                with open(path, encoding="utf-8") as f:
-                    n_lines = sum(1 for _ in f)
-                detail.update(
-                    f"[b]{path}[/]\n\n"
-                    f"Size: {size_kb} kB\n"
-                    f"Lines: {n_lines}"
-                )
-            except OSError as e:
-                detail.update(f"[b]{path}[/]\n\n[red]{e}[/]")
-        else:
+        if not os.path.isfile(path):
             detail.update(label)
+            return
+        try:
+            size_kb = round(os.path.getsize(path) / 1000, 2)
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+            n_lines = content.count("\n") + (0 if content.endswith("\n") or not content else 1)
+        except OSError as e:
+            detail.update(f"[b]{path}[/]\n\n[red]{e}[/]")
+            return
+
+        if preview:
+            detail.update(
+                f"[b]{path}[/]\n\n"
+                f"Size: {size_kb} kB\n"
+                f"Lines: {n_lines}\n\n"
+                f"[dim]Press [b]enter[/] for full per-file stats[/]"
+            )
+            return
+
+        # Full per-file stats via Stat on this single file
+        try:
+            file_stat = Stat([path], config=self.config)
+            lines = file_stat.line_count()
+            avg = lines.pop("Average", "-")
+            classes = file_stat.get_classes()
+            _names, called = file_stat.most_called_func()
+            imports = file_stat.import_count()
+            n_imports = sum(v if isinstance(v, int) else sum(v.values())
+                            for v in imports.values())
+            if_s, while_s, for_s, with_s, try_s, nvars = file_stat.get_control_statements()
+            decorators = file_stat.count_decorator()
+            n_decorators = sum(decorators.values())
+            dupes = file_stat.dupelinefind()
+            top_dupe = next(iter(dupes.items()), None)
+
+            dupe_line = "-"
+            if top_dupe:
+                text, count = top_dupe
+                preview_text = (text[:40] + "...") if len(text) > 40 else text
+                dupe_line = f"{count}x  {preview_text or '(blank)'}"
+
+            detail.update(
+                f"[b]{path}[/]  [dim]({size_kb} kB)[/]\n\n"
+                f"[b]Lines:[/] {n_lines}  (avg line span {avg})\n"
+                f"[b]Classes:[/] {len(classes)}\n"
+                f"[b]Functions:[/] {len(called)}\n"
+                f"[b]Import statements:[/] {n_imports}\n"
+                f"[b]Decorators:[/] {n_decorators}\n"
+                f"[b]Variables:[/] {nvars}\n"
+                f"[b]If/While/For/With/Try:[/] {if_s}/{while_s}/{for_s}/{with_s}/{try_s}\n\n"
+                f"[b]Most duplicated line:[/]\n  {dupe_line}\n\n"
+                f"[dim]See other tabs for cross-file tables[/]"
+            )
+        except Exception as e:
+            detail.update(f"[b]{path}[/]\n\n[red]Could not analyze: {e}[/]")
 
     def action_reload(self) -> None:
         self.config = PyStatsConfig(sys.argv[1:])
