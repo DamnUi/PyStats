@@ -36,6 +36,9 @@ class PyStatsApp:
         try:
             import _PyStats
             self._PyStats = _PyStats
+            # Restore the old Windows UAC elevation behaviour (it used to run
+            # as a side effect of importing _PyStats).
+            self._PyStats.ensure_admin()
             return True
         except ImportError as e:
             self._handle_import_error(e)

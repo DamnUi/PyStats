@@ -32,7 +32,7 @@ from rich.rule import Rule
 from rich.status import Status
 from rich.traceback import install as install_traceback
 from rich.tree import Tree
-import termcharts  # Visualization library (in development)
+# install term charts later # Visualization library (in development)
 
 # Local imports
 import errors as _errors
@@ -110,258 +110,145 @@ class FileProcessor:
                 total_time += 10
         return total_time
 
-def initialize_workspace(args: argparse.Namespace) -> Tuple[List[str], List[str]]:
-    """Initialize the workspace by finding and validating Python files.
-    
-    Args:
-        args: Parsed command line arguments
-        
-    Returns:
-        Tuple of (valid_files, removed_files)
-    """
-    removed_files = []
-    
-    if args.df is None:
-        # Automatic mode - search current directory
-        working_path = FileProcessor.find_python_files(os.getcwd())
-        
-        # Validate files
-        valid_files = []
-        for file_path in working_path:
-            if FileProcessor.validate_python_file(file_path):
-                valid_files.append(file_path)
-            else:
-                removed_files.append(file_path)
-        
-        if __name__ == '__main__':
-            print(f"[green]Found {len(valid_files)} valid Python files[/]")
-            if removed_files:
-                print(f"[yellow]Skipped {len(removed_files)} invalid files[/]")
-                
-        return valid_files, removed_files
-        
-    else:
-        # Specific directory or file mode
-        if os.path.isdir(args.df):
-            # Process directory
-            working_path = []
-            for dir_path, _, filenames in os.walk(args.df):
-                python_files = [os.path.relpath(os.path.join(dir_path, f))
-                              for f in filenames if f.endswith('.py')]
-                working_path.extend(python_files)
-            
-            # Handle neglected files
-            if args.neglect:
-                working_path = [
-                    path for path in working_path 
-                    if args.neglect not in path.replace("\\", "/")
-                ]
-                
-            return working_path, []
-        else:
-            # Single file mode
-            return [args.df], []
-
-def main():
-    """Main entry point for PyStats."""
-    parser = setup_argument_parser()
-    args = parser.parse_args()
-    
-    # Initialize workspace
-    valid_files, removed_files = initialize_workspace(args)
-    
-    if not valid_files:
-        print("[red]No valid Python files found to analyze[/]")
-        return
-        
-    # Initialize statistics with new structure
-    stats = CodeStatistics(valid_files)
-    
-    # Initialize visualization
-    wrapper = VisualWrapper(
-        stats,  # Pass the statistics object instead of raw files
-        adhd_mode=args.adhd,
-        extra_adhd=False
-    )
-    
-    # Display results
-    print(wrapper.get_all(gui=True))
-
-if __name__ == '__main__':
-    main()
-
-def find_wrapper(name: str, path: str) -> Optional[str]:
-    """Find a file in the given directory and its subdirectories.
-    
-    Args:
-        name: Name of the file to find
-        path: Root directory to start search from
-        
-    Returns:
-        Full path to the file if found, None otherwise
-    """
-    for root, _, files in os.walk(path):
+def find(name: str, path: str) -> Optional[str]:
+    """Find a file named *name* under *path* (expects no _utils in the directory)."""
+    for root, _dirs, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
     return None
 
-def setup_argument_parser() -> argparse.ArgumentParser:
-    """Configure and return the argument parser for command line options.
-    
-    Returns:
-        Configured argument parser instance
-    """
-    parser = argparse.ArgumentParser(
-        description="Analyze Python source code and generate statistics"
-    )
-    
-    parser.add_argument(
-        "-df",
-        help="Path to directory or file to analyze (defaults to current directory)",
-        default=None
-    )
-    
-    parser.add_argument(
-        "-neglect",
-        help="Path to file to ignore (only valid when analyzing directory)",
-        default=None
-    )
-    
-    parser.add_argument(
-        "--vars",
-        help="Number of most used variables to show",
-        type=int,
-        default=None
-    )
-    
-    parser.add_argument(
-        "--adhd",
-        help="Enable ADHD mode with colorful output",
-        action="store_true",
-        default=False
-    )
-    
-    parser.add_argument(
-        "--getline",
-        help="Show line numbers for function definitions",
-        action="store_true",
-        default=False
-    )
-    
-    parser.add_argument(
-        "-imgpath",
-        help="Path to save visualization image (without extension)",
-        default=None
-    )
-    
-    return parser
 
-# could've imported from PyStats but that'd create a circular import, should be avoided
-console = Console(record=True)
-install_traceback(show_locals=False)
-print = console.print
 os_name = os.name
 
 
-def find(name, path): #Expecting there to not be any  _utils in the directory
-    for root, dirs, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-        
-if __name__ == '__main__':
-    print('[red]PyStats is a python module that allows you to easily view your python statistics, Your getting all this info because your running this file directly, you should use the PyStats wrapper instead and use it in other python files[/]')
-    print('[yellow]Looking for PyStats.py wrapper in the current directory')        
-    if find('PyStats.py', '.'):
-        print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
-        os.system('Python PyStats.py')
-    else:
-        print('[red]Could not find PyStats.py wrapper in the working directory, Please install fully instead[/]')
-        quit()
+class PyStatsConfig:
+    """Owns command-line arguments, file discovery and validation.
 
-    
+    This replaces the old pile of module-level ``parser`` / ``args`` /
+    ``working_path`` / ``removed_files`` code that used to run (in a fragile
+    order) at import time. Stat and VisualWrapper now share one config object
+    instead of reaching for globals.
+    """
+
+    def __init__(self, argv: Optional[List[str]] = None) -> None:
+        parser = self._build_argument_parser()
+        self.args: argparse.Namespace = parser.parse_args(argv)
+        if self.args.vars is None:
+            self.args.vars = False
+        self.removed_files: List[str] = []
+        self.working_path: Union[List[str], List[List[str]], str] = self._discover_files()
+
+    @staticmethod
+    def _build_argument_parser() -> argparse.ArgumentParser:
+        """Configure and return the argument parser (same flags as always)."""
+        parser = argparse.ArgumentParser(
+            description="Analyze Python source code and generate statistics"
+        )
+        # if arg nouments are passed, the default is set to the current directory
+        parser.add_argument("-df", help="Input Absolute Path to Directory or one File")
+
+        # df is directory or file it will kinda figure out itself assuming theirs only 2 files in
+        # the dir and u do -neglect
+        parser.add_argument("-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY")
+
+        # Argument if to get how many variables
+        parser.add_argument("--vars", help="Get how many variables are in the file")
+
+        # Argument to enable adhd mode
+        parser.add_argument("--adhd", help="Enable ADHD Mode", default=False)
+
+        # Argument to get line in get_functions in Stat class
+        parser.add_argument("--getline",
+                            help="Get parameters of all scraped functions",
+                            default=False)
+
+        parser.add_argument("-imgpath", help="Input Absolute Path to create the img example: \
+                            file_name (dont add anything else)", default=None)
+
+        return parser
+
+    def _discover_files(self) -> Union[List[str], List[List[str]], str]:
+        """Find the python files to analyze.
+
+        Fixes vs the old module-level code:
+        - auto mode no longer removes files from the list *while iterating*
+          over it (that silently skipped the file after every syntax error)
+        - directory mode's -neglect filter actually works now (it used to
+          mutate a throwaway loop variable instead of removing the file)
+        - file validation uses the configured DEFAULT_ENCODING
+        """
+        if self.args.df is None:
+            # Automatic mode - search current directory
+            if __name__ == '__main__':
+                print("[yellow]Currently in Automatic mode this selects all files only in your current directory "
+                      "ending with py extension[/]")
+
+            working_path = FileProcessor.find_python_files(os.getcwd())
+
+            valid_files = []
+            for file_path in working_path:
+                if FileProcessor.validate_python_file(file_path):
+                    valid_files.append(file_path)
+                else:
+                    self.removed_files.append(file_path)
+
+            if __name__ == '__main__':
+                print("[green]Found {} files in your current directory[/]".format(len(valid_files)))
+
+            return valid_files
+
+        if os.path.isdir(self.args.df):
+            # Directory mode
+            working_path: List[str] = []
+            for dir_path, _dirnames, filenames in os.walk(self.args.df):
+                working_path.extend(
+                    os.path.relpath(os.path.join(dir_path, file_name))
+                    for file_name in filenames
+                    if file_name.endswith('.py')
+                )
+
+            # remove neglect from paths (this used to be broken, see docstring)
+            if self.args.neglect is not None:
+                working_path = [
+                    file_path for file_path in working_path
+                    if self.args.neglect not in file_path.replace("\\", "/")
+                ]
+
+            return working_path
+
+        # Single file mode
+        return self.args.df
+
+    def ensure_admin(self) -> None:
+        """Re-launch with admin privileges on Windows (no-op on other OSes).
+
+        The old code did this as a side effect of *importing* _PyStats, which
+        meant even importing the library triggered a UAC prompt.
+        """
+        if os_name != "nt" or _utils.is_admin():
+            return
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable,
+                                            " ".join(sys.argv), None, 1)
+
+    def estimate_processing_time(self, file_paths: List[str]) -> int:
+        """Estimate processing time based on file sizes (used by get_all)."""
+        total_time = 0
+        for file_path in file_paths:
+            size = os.path.getsize(file_path)
+            if size < MINIMUM_FILE_SIZE:
+                total_time += 2
+            elif size < 10000:
+                total_time += 4
+            elif size < 20000:
+                total_time += 5
+            elif size < 30000:
+                total_time += 6
+            elif size < 100000:
+                total_time += 10
+        return total_time
 
 
-if os_name == "nt":
-    # we only want this to be executed if the operating system is Windows
-    # moved is_admin function to utilities.py
-    if _utils.is_admin():
-        if __name__ == '__main__':
-            print("[yellow]Running the script with ADMIN privileges.")
-        pass
-    else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv),
-                                            None, 1)
 
-parser = argparse.ArgumentParser()
-
-# if arg nouments are passed, the default is set to the current directory
-parser.add_argument("-df", help="Input Absolute Path to Directory or one File")
-
-# df is directory or file it will kinda figure out itself assuming theirs only 2 files in
-# the dir and u do -neglect
-parser.add_argument("-neglect", help="Input Absolute Path to File to Ignore ONLY IN DIRECTORY")
-
-# Argument if to get how many variables
-parser.add_argument("--vars", help="Get how many variables are in the file")
-
-# Argument to enable adhd mode
-parser.add_argument("--adhd", help="Enable ADHD Mode", default=False)
-
-# Argument to get line in get_functions in Stat class
-parser.add_argument("--getline",
-                    help="Get parameters of all scraped functions",
-                    default=False)
-
-parser.add_argument("-imgpath", help="Input Absolute Path to create the img example: \
-                    file_name (dont add anything else)", default=None)
-
-# Debug argument to print out the file names
-path = parser.parse_args()
-args = parser.parse_args()
-removed_files = []
-if args.vars is None:
-    args.vars = False
-if args.df is None:
-    if __name__ == '__main__':
-        print("[yellow]Currently in Automatic mode this selects all files only in your current directory "
-          "ending with py extension")
-        
-    working_path = []
-    for root, dirs, files in os.walk(os.getcwd()):
-        for file in files:
-            if(file.endswith(".py")):
-                working_path.append(os.path.join(root,file))
-    
-    for file in working_path:
-        try:
-            compile(open(file).read(), file, 'exec')
-        except Exception as e:
-            #print(f"[red]Syntax Error in {file}, Removing[/], {e}")
-            #remove it
-            working_path.remove(file)   
-            removed_files.append(file)
-            continue
-
-    # Automatic mode
-    if __name__ == '__main__':
-        print("[green]Found {} files in your current directory[/]".format(len(working_path)))
-    
-else:
-    # Determine if it's a directory or file
-    if os.path.isdir(path.df):
-        working_path = [[os.path.relpath(os.path.join(dir_path, f))
-                         for f in filenames if f.endswith('.py')]
-                        for dir_path, _, filenames in os.walk(path.df)]
-
-        # remove neglect from paths
-        if path.neglect is not None:
-            for line in working_path:
-                original_line = line
-                line = line.replace("\\", "/")
-                if path.neglect in line:
-                    working_path.remove(original_line)
-    else:
-        working_path = path.df
 
 
 # Analysis-specific classes
@@ -548,7 +435,8 @@ class Stat:
         directory: List of file paths to analyze
     """
 
-    def __init__(self, directory: Union[str, List[str], List[List[str]]]) -> None:
+    def __init__(self, directory: Union[str, List[str], List[List[str]]],
+                 config: 'PyStatsConfig' = None) -> None:
         """Initialize the Stat class with target files to analyze.
         
         Args:
@@ -567,6 +455,8 @@ class Stat:
 
         if not self.directory:
             raise _errors.NoFilePresent("No file present in given directory.")
+
+        self._config = config if config is not None else _get_default_config()
 
     @staticmethod
     def add_imports_to_results(import_list: Dict[str, int], 
@@ -678,12 +568,18 @@ class Stat:
                         
                     line_count[file_path] = count
         else:
+            file_path = os.path.relpath(self.directory[0])
             with open(self.directory[0], encoding="utf8") as open_file:
-                file_path = os.path.relpath(self.directory[0])
-                line_count[file_path] = sum(1 for _ in open_file)
+                if not exclude_empty_line:
+                    line_count[file_path] = sum(1 for _ in open_file)
+                else:
+                    line_count[file_path] = sum(1 for _ in open_file if _.rstrip("\n"))
 
-        avg_line_count = sum(line_count.values()) / len(line_count.keys())
-        line_count["Average"] = avg_line_count.__round__(2)
+        if line_count:
+            avg_line_count = round(sum(line_count.values()) / len(line_count.keys()), 2)
+        else:
+            avg_line_count = 0
+        line_count["Average"] = avg_line_count
 
         return line_count
 
@@ -705,15 +601,15 @@ class Stat:
         #arrange them in order of most to least
         self.dupes = dict(sorted(self.dupes.items(), key=lambda item: item[1], reverse=True))
         #remove first value of dict
-        self.dupes.pop('')
+        self.dupes.pop('', None)
         
         return self.dupes
 
     def most_used_variable(self, n_variables=None):
         item_list = _utils.list_to_counter_dictionary(self.__scrape_variables())
 
-        if args.vars:
-            n_variables = int(args.vars)
+        if self._config.args.vars:
+            n_variables = int(self._config.args.vars)
 
         most_used_variable = dict(sorted(item_list.items(), key=lambda item: item[1], reverse=True))
         # Subtract 1 from each element in most_used_variable
@@ -839,8 +735,10 @@ class Stat:
 
         return class_names
 
-    def get_func(self, display_line=args.getline, get_=None):
+    def get_func(self, display_line=None, get_=None):
         # A full ripoff from the get_classes function with the only thing being changed is the regex
+        if display_line is None:
+            display_line = bool(getattr(self._config.args, 'getline', False))
         times_used = self.most_called_func()  # Only
         most_called_func = times_used[1]
         class_names = {}
@@ -968,16 +866,16 @@ class Stat:
                             numiter += 1
         return var_types
         
-    @staticmethod
-    def get_args():
+    def get_args(self):
         # Get all commandline args and what value their currently on
         # listing the arguments with - first, and -- after them
-        arg_list = {'-df': args.df,
-                    '-neglect': args.neglect,
-                    '-getline': args.getline,
-                    '-imgpath': args.imgpath,
-                    '--vars': args.vars,
-                    '--adhd': args.adhd, }
+        cfg_args = self._config.args
+        arg_list = {'-df': cfg_args.df,
+                    '-neglect': cfg_args.neglect,
+                    '-getline': cfg_args.getline,
+                    '-imgpath': cfg_args.imgpath,
+                    '--vars': cfg_args.vars,
+                    '--adhd': cfg_args.adhd, }
         return arg_list
 
 
@@ -997,22 +895,21 @@ class custom_panel():
         self.title_align = title_align
     
     def md_split(self, split_divide_by=3, dict_=False):
-        self.split_divide_by = split_divide_by  
-        try:
-            each_panel_should_contain = len(self.raw) / split_divide_by
-            contain = int(round(each_panel_should_contain, 0))
-        except Exception as e:
-            pass
+        self.split_divide_by = split_divide_by
+
         if dict_:
-            self.raw = dict(self.raw)
-            self.raw = [self.raw[i:i + 10] for i in range(0, len(self.raw), 10)]
-            return self.raw
-        
+            items = list(self.raw.items()) if isinstance(self.raw, dict) else list(self.raw)
+            return [items[i:i + 10] for i in range(0, len(items), 10)]
+
+        if not split_divide_by:
+            return [self.raw]
+
+        contain = int(round(len(self.raw) / split_divide_by, 0))
         md_split = []
         for i in range(split_divide_by):
             md_split.append(self.raw[i * contain:(i + 1) * contain])
         return md_split
-    
+
     def make_panel(self, dict_mod3):
         md_split = self.md_split(dict_=dict_mod3)
         panels = []
@@ -1026,75 +923,87 @@ class custom_panel():
 
 
 class simplpromt():
+    """Small prompt/status panel shown above the stats.
+
+    Fixed during the OOP refactor:
+    - ``clear`` was a broken decorator (missing self/staticmethod), now a real
+      staticmethod decorator factory
+    - ``os.get_terminal_size()`` crashed when stdout is not a terminal (pipes,
+      CI); it now falls back to 80x24
+    - ``add_to_main`` width math could go negative for long prompts
+    """
+
     def __init__(self, custom_promt=None, Defaults=True, add_to_default_promt=None) -> None:
-        #clear cmd
         username = os.getlogin()
-        self.username =  f'[blue]{username}[/]'
-        
+        self.username = f'[blue]{username}[/]'
+
         self.control_panel = Panel
         self.instace = Panel
-        
+
         current_path = os.getcwd()
-        #format path
+        # format path
         current_path = current_path.replace('\\', '/')
-        #remove D:
+        # remove drive letter (e.g. 'D:' on Windows)
         self.current_path = current_path[2:]
-        
-        
+
         self.osx = sys.platform
         self.osxversion = sys.version
-        
-        self.sizes = os.get_terminal_size()
-        
-        
-        
+
+        try:
+            self.sizes = os.get_terminal_size()
+        except OSError:
+            # Not a real terminal (pipes/CI) - use a sane fallback
+            self.sizes = os.terminal_size((80, 24))
+
         if custom_promt:
             self.custom_promt = custom_promt
         else:
             self.old_promt = f"[green]PyStats@[/]{self.username}: {self.current_path} "
-            self.custom_promt = f"[green]PyStats@[/]{self.username}: {self.current_path} "
+            self.custom_promt = self.old_promt
+
         if add_to_default_promt:
             self.custom_promt += f' {add_to_default_promt}'
-        
-        if Defaults:
-            print((self.instace(f"{self.custom_promt} \n[gray7]OS: {self.osx} {self.osxversion}[/] $", height=4, border_style='grey39', box=rich.box.HORIZONTALS)))
 
-        
+        if Defaults:
+            print((self.instace(f"{self.custom_promt} \n[gray7]OS: {self.osx} {self.osxversion}[/] $",
+                                height=4, border_style='grey39', box=rich.box.HORIZONTALS)))
+
+    @staticmethod
     def clear():
         def cls(func):
             def wrapper(*args, **kwargs):
                 os.system('cls' if os.name == 'nt' else 'clear')
                 func(*args, **kwargs)
             return wrapper
-        return  cls
-    
+        return cls
 
     @clear()
     def add_to_main(self, text, cls_previous=False):
         if cls_previous:
             self.custom_promt = self.old_promt
         self.custom_promt += f' {text}'
-        
-        print((self.instace(self.custom_promt, height=3, width=self.sizes[0]-len(self.custom_promt)-15, border_style='grey39', box=rich.box.HORIZONTALS)))
-        
+        width = max(self.sizes[0] - len(self.custom_promt) - 15, 20)
+        print((self.instace(self.custom_promt, height=3, width=width,
+                            border_style='grey39', box=rich.box.HORIZONTALS)))
 
     def update(self, text):
         print(f"  {text}")
 
 
-
 class VisualWrapper():
-    def __init__(self, directory, adhd_mode=False, extra_adhd=False) -> None:
-        self.directory = directory
-        
+    def __init__(self, directory=None, adhd_mode=False, extra_adhd=False,
+                 config: 'PyStatsConfig' = None) -> None:
+        self._config = config if config is not None else _get_default_config()
+
+        self.directory = directory if directory is not None else self._config.working_path
+
         #Fix when self.directory has only 1 file
-        if type(self.directory) == str:
+        if isinstance(self.directory, str):
             self.directory = [self.directory]
-                
+
         self.f_height_glace = 0 # Naming really is hard
 
-
-        self.stat = Stat(self.directory)
+        self.stat = Stat(self.directory, config=self._config)
 
         # what about the adhd mode?
         self.adhd_mode = adhd_mode
@@ -1144,6 +1053,7 @@ class VisualWrapper():
             #print() OFC THIS IS THE LINE I LEAVE HERE BY MISTAKE TRYNA FIRGURE IT OUT OH MY GODDDDD
             tree.add(f'[gold1]{py_files}[/] 'f'[spring_green4]({round(os.path.getsize(py_files) / 1000, 2)} kB)[/]')
             
+        removed_files = self._config.removed_files
         if len(removed_files) != 0:
             #tree.add(f"[bright_black]Removed Files:[/]")
             for file_ in removed_files:
@@ -1197,8 +1107,8 @@ class VisualWrapper():
             n_variables = get_overde
         # if int(n_variables) > 10:
         #     n_variables = 1
-        if args.vars:
-            n_variables = int(args.vars)
+        if self._config.args.vars:
+            n_variables = int(self._config.args.vars)
             # Gets max number of variables assuming their not more than 100000 cloud implement a
             # fix to this astro, but it will do for now
             # print(len(self.stat.most_used_variable(100000)))
@@ -1512,35 +1422,47 @@ class VisualWrapper():
 
         return color1, color2
 
-    def img_render(self, remove_check=False, force_show=True, clear_screen=False):
+    def img_render(self, remove_check=False, force_show=True, clear_screen=False,
+                   imgpath=None):
+        """Render the current stats view to an SVG file.
+
+        Old behaviour kept: remove_check=True with no path saves 'PyStats.svg',
+        an -imgpath saves 'PyStats <name>.svg'. Fixes: the duplicated save
+        block is gone, opening the file is no longer Windows-only
+        (os.startfile), and the "no path" error is returned before wasting
+        time rendering the whole dashboard.
+        """
         def get_info():
             print(self.get_all())
             if clear_screen:
                 self.clear_term()
 
-        if remove_check:
-            get_info()
+        if imgpath is None:
+            imgpath = self._config.args.imgpath if self._config is not None else None
 
-        if remove_check:
-            with open(f'PyStats.svg ', 'w', encoding='utf-8') as f:
-                f.write(console.export_svg())
-                # open the file on Windows
-                if force_show:
-                    os.startfile(f'PyStats.svg')
-                return [True]
-            
-            
-        if args.imgpath:
-            get_info()
-            with open(f'PyStats {args.imgpath}.svg ', 'w', encoding='utf-8') as f:
-                f.write(console.export_svg())
-                # open the file on Windows
-                if force_show:
-                    os.startfile(f'PyStats {args.imgpath}.svg')
-                return [True]
+        if imgpath is None and not remove_check:
+            return False, ('[red]img render path not given - no image rendered \n'
+                           'Use the option -imgpath to specify a path[/]')
+
+        get_info()
+        file_name = f'PyStats {imgpath}.svg' if imgpath else 'PyStats.svg'
+        with open(file_name, 'w', encoding='utf-8') as f:
+            f.write(console.export_svg())
+
+        if force_show:
+            self._open_file(file_name)
+
+        return [True]
+
+    @staticmethod
+    def _open_file(path: str) -> None:
+        """Open *path* with the default OS viewer (old code was Windows-only)."""
+        if os_name == "nt":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            os.system(f'open "{path}"')
         else:
-            return False, '[red]img render path not given - no image rendered \n' \
-                   'Use the option --imgpath to specify a path[/]'
+            os.system(f'xdg-open "{path}"')
 
     def get_all(self, gui=True):
         promt = simplpromt(add_to_default_promt=f'[red]PyStats - Python File Stats [/]- [black]Getting statistics on [/][green]{len(self.directory)}[/] [black]{"File" if len(self.directory) == 1 else "Files"}[/] $')
@@ -1573,7 +1495,7 @@ class VisualWrapper():
                             self.get_func(2), self.visual_var_combinev2()])  # v1 shows all and how many times each thing is called while v2 shows a summary of it v2 looks cleaner
         
 
-        groups = Group(Columns([self.quick_stats(), self.reformat_args()], padding=(1, os.get_terminal_size()[0]-130)),# This exact number is needed for pixel perfect accuracy
+        groups = Group(Columns([self.quick_stats(), self.reformat_args()], padding=(1, max(promt.sizes[0] - 130, 0))),# This exact number is needed for pixel perfect accuracy
                         Rule('[bright_black b]At a glance[/]', style='red'),
                         group1, self.get_class(),
                         Rule('[bright_black b]Functions & Classes[/]', style='red'), group3, #To remove the box around Functions & Classes remove panel wrapper, Panel(group3, style=self.get_colors()[0], width=self.full_width+7)
@@ -1583,7 +1505,43 @@ class VisualWrapper():
             return Panel(renderable=groups,
                             title="[bright_black b]All Stats[/]",
                             title_align="center", style='red', box=rich.box.HEAVY)
-                
-            
-                
-                
+
+
+# ---------------------------------------------------------------------------
+# Default config + legacy module-level names
+#
+# ``PyStats.py`` (the wrapper) and any code written against the old module
+# still expect ``_PyStats.args`` / ``_PyStats.working_path`` /
+# ``_PyStats.removed_files`` to exist, so the shared config is created here.
+# ---------------------------------------------------------------------------
+_default_config = PyStatsConfig()
+args = _default_config.args
+working_path = _default_config.working_path
+removed_files = _default_config.removed_files
+
+CustomPanel = custom_panel
+SimplePrompt = simplpromt
+
+
+def _get_default_config() -> PyStatsConfig:
+    """Return the shared default config used by Stat and VisualWrapper."""
+    return _default_config
+
+
+def ensure_admin() -> None:
+    """Re-launch the current process with admin privileges on Windows."""
+    _default_config.ensure_admin()
+
+
+if __name__ == '__main__':
+    print('[red]PyStats is a python module that allows you to easily view your python statistics, '
+          'Your getting all this info because your running this file directly, you should use the '
+          'PyStats wrapper instead and use it in other python files[/]')
+    print('[yellow]Looking for PyStats.py wrapper in the current directory[/]')
+    if find('PyStats.py', '.'):
+        print('[green]Found PyStats.py wrapper in the current directory, importing it[/]')
+        os.system('Python PyStats.py')
+    else:
+        print('[red]Could not find PyStats.py wrapper in the working directory, '
+              'Please install fully instead[/]')
+        sys.exit(1)
